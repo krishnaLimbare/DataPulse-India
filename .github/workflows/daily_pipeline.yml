@@ -1,0 +1,58 @@
+name: Daily pipeline
+
+on:
+  schedule:
+    - cron: "30 19 * * *"   # 01:00 IST
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Run a single source (blank = all enabled)"
+        required: false
+      dry_run:
+        description: "Collect and validate without writing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write           # only to commit the day's datasets
+
+concurrency:
+  group: daily-pipeline
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Collect
+        env:
+          DATAPULSE_API_KEYS__DATA_GOV_IN: ${{ secrets.DATA_GOV_IN_API_KEY }}
+        run: |
+          datapulse run \
+            ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            --no-fail-fast
+
+      - name: Commit datasets
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name  "datapulse-bot"
+          git config user.email "actions@github.com"
+          git add datasets
+          git diff --staged --quiet || git commit -m "data: daily collection $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Upload run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-report
+          path: datasets/_runs/

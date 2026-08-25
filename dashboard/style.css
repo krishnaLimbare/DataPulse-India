@@ -1,0 +1,15 @@
+:root { --bg:#fff; --fg:#111; --muted:#666; --line:#e5e5e5; --accent:#0b6; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0d0f; --fg:#eee; --muted:#999; --line:#2a2a2e; }
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:2rem clamp(1rem,5vw,4rem); background:var(--bg); color:var(--fg);
+       font:16px/1.6 ui-sans-serif, system-ui, sans-serif; }
+h1 { margin:0 0 .25rem; font-size:1.75rem; }
+.muted { color:var(--muted); }
+#tabs { display:flex; gap:.5rem; flex-wrap:wrap; border-bottom:1px solid var(--line); margin:1.5rem 0; }
+#tabs button { background:none; border:0; border-bottom:2px solid transparent; color:var(--muted);
+               padding:.5rem .25rem; font:inherit; cursor:pointer; }
+#tabs button.active { color:var(--fg); border-bottom-color:var(--accent); }
+footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--muted); font-size:.875rem; }
+a { color:var(--accent); }

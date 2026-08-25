@@ -1,0 +1,32 @@
+# Non-secret configuration. Secrets belong in .env / GitHub Actions secrets.
+# Adding a dataset: write datapulse/sources/<name>.py, then add a block below.
+
+environment: local
+log_level: INFO
+respect_robots_txt: true
+
+storage:
+  backend: parquet_local      # swap for s3/duckdb later without touching sources
+  root: datasets
+  compression: zstd
+
+sources:
+  mandi_prices:
+    enabled: false            # needs DATAPULSE_API_KEYS__DATA_GOV_IN
+    domain: food_mandi
+    schedule: daily
+    rate_limit_per_sec: 1.0
+    options:
+      page_size: 1000
+      max_pages: 5
+
+  # --- planned, add the module then flip enabled ---------------------
+  # used_cars:
+  #   enabled: false
+  #   domain: cars
+  # city_rents:
+  #   enabled: false
+  #   domain: real_estate
+  # tech_jobs:
+  #   enabled: false
+  #   domain: tech_jobs
