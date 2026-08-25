@@ -64,22 +64,15 @@ class MandiPrices(BaseSource):
     def parse(self, raw: list[dict[str, Any]], ctx: RunContext) -> pd.DataFrame:
         if not raw:
             return pd.DataFrame(columns=self.schema.names)
-        df = pd.DataFrame(raw).rename(
-            columns={
-                "state": "state",
-                "district": "district",
-                "market": "market",
-                "commodity": "commodity",
-                "variety": "variety",
-                "arrival_date": "arrival_date",
-                "min_price": "min_price",
-                "max_price": "max_price",
-                "modal_price": "modal_price",
-            }
-        )
-        for col in ("min_price", "max_price", "modal_price"):
-            df[col] = pd.to_numeric(df.get(col), errors="coerce")
+
+        # The portal has shipped both `min_price` and `Min_Price` across API
+        # versions, so normalise keys instead of trusting one casing.
+        df = pd.DataFrame(raw)
+        df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
         for col in self.schema.names:
             if col not in df.columns:
                 df[col] = pd.NA
+        for col in ("min_price", "max_price", "modal_price"):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
         return df

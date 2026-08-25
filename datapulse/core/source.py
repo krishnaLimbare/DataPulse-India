@@ -80,11 +80,20 @@ class BaseSource(ABC):
         """Template method: fetch -> parse -> stamp -> validate."""
         raw = self.fetch(ctx)
         df = self.parse(raw, ctx)
-        if "collected_date" in self.schema.names and "collected_date" not in df.columns:
-            df["collected_date"] = pd.to_datetime(ctx.run_date)
-        if "source" in self.schema.names and "source" not in df.columns:
-            df["source"] = self.name
+        self._stamp(df, "collected_date", pd.to_datetime(ctx.run_date))
+        self._stamp(df, "source", self.name)
         return self.schema.validate(df)
+
+    def _stamp(self, df: pd.DataFrame, column: str, value: Any) -> None:
+        """Fill a provenance column the source did not populate.
+
+        Absent *or* all-null counts as unpopulated: `parse` implementations
+        commonly back-fill every declared column with NA before returning.
+        """
+        if column not in self.schema.names:
+            return
+        if column not in df.columns or df[column].isna().all():
+            df[column] = value
 
 
 _REGISTRY: dict[str, type[BaseSource]] = {}
