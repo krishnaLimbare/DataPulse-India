@@ -16,7 +16,7 @@ Nothing in core needs to change.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, ClassVar
 
@@ -28,6 +28,10 @@ from .logging import get_logger
 from .schema import Schema
 
 
+class MissingSecret(RuntimeError):
+    """A source asked for a credential that is not configured."""
+
+
 @dataclass
 class RunContext:
     """Everything a source is allowed to touch. Sources never read globals."""
@@ -36,9 +40,21 @@ class RunContext:
     config: SourceConfig
     http: HttpClient
     dry_run: bool = False
+    secrets: dict[str, str] = field(default_factory=dict)
 
     def option(self, key: str, default: Any = None) -> Any:
+        """Non-secret, per-source tuning from config/settings.yaml."""
         return self.config.options.get(key, default)
+
+    def secret(self, name: str) -> str:
+        """Credential from the environment. Raises with an actionable message."""
+        value = self.secrets.get(name.lower())
+        if not value:
+            raise MissingSecret(
+                f"secret {name!r} is not set; export "
+                f"DATAPULSE_API_KEYS__{name.upper()} (see .env.example)"
+            )
+        return value
 
 
 class BaseSource(ABC):

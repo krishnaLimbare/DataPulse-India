@@ -59,7 +59,13 @@ def _run_one(source: BaseSource, settings: Settings, run_date: date, storage) ->
             max_retries=cfg.max_retries,
             respect_robots=settings.respect_robots_txt,
         ) as http:
-            ctx = RunContext(run_date, cfg, http, dry_run=settings.dry_run)
+            ctx = RunContext(
+                run_date,
+                cfg,
+                http,
+                dry_run=settings.dry_run,
+                secrets={k: v.get_secret_value() for k, v in settings.api_keys.items()},
+            )
             df = source.collect(ctx)
 
         path = None

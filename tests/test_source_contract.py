@@ -33,3 +33,14 @@ def test_collect_stamps_and_validates(source_config):
 
     df = _Dummy(source_config).collect(RunContext(date(2026, 8, 25), source_config, http=None))
     assert df.loc[0, "source"] == "_dummy_test_source"
+
+
+def test_secret_lookup_is_actionable(source_config):
+    from datetime import date
+
+    from datapulse.core.source import MissingSecret
+
+    ctx = RunContext(date(2026, 8, 25), source_config, http=None, secrets={"present": "x"})
+    assert ctx.secret("PRESENT") == "x"
+    with pytest.raises(MissingSecret, match="DATAPULSE_API_KEYS__ABSENT"):
+        ctx.secret("absent")

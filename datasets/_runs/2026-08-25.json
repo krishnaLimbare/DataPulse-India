@@ -1,0 +1,17 @@
+{
+  "run_date": "2026-08-25",
+  "started_at": "2026-08-25T10:18:48.390713Z",
+  "finished_at": "2026-08-25T10:18:48.391356Z",
+  "dry_run": true,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "skipped",
+      "rows": 0,
+      "path": null,
+      "duration_seconds": 0.0,
+      "error": null
+    }
+  ]
+}

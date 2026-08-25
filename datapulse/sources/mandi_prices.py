@@ -7,7 +7,6 @@ Set it as `DATAPULSE_API_KEYS__DATA_GOV_IN` and flip `enabled: true` in config.
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import pandas as pd
@@ -40,11 +39,7 @@ class MandiPrices(BaseSource):
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
-        api_key = os.getenv("DATAPULSE_API_KEYS__DATA_GOV_IN")
-        if not api_key:
-            raise RuntimeError(
-                "DATAPULSE_API_KEYS__DATA_GOV_IN is not set; get a free key at data.gov.in"
-            )
+        api_key = ctx.secret("data_gov_in")
         page_size = int(ctx.option("page_size", 1000))
         max_pages = int(ctx.option("max_pages", 5))
         records: list[dict[str, Any]] = []
