@@ -18,6 +18,7 @@ LOWER = [
         "market": "Pune",
         "commodity": "Tomato",
         "variety": "Local",
+        "grade": "FAQ",
         "arrival_date": "25/08/2026",
         "min_price": "1200",
         "max_price": "1800",
@@ -55,6 +56,15 @@ def test_non_numeric_prices_become_null_not_errors():
 def test_empty_response_yields_empty_frame_with_schema():
     out = _collect([])
     assert out.empty and list(out.columns) == MandiPrices.schema.names
+
+
+def test_overlapping_partitions_dedupe_without_flagging_the_run():
+    """Partition overlap is by design, so it must not degrade the run status."""
+    rows = _multi_state_rows()
+    ctx = _partitioned_ctx(_PartitionedHttp(rows), values=["Gujarat", "Gujarat", "Kerala"])
+    source = MandiPrices(ctx.config)
+    source.collect(ctx)
+    assert source.warnings == []
 
 
 def test_duplicate_rows_across_pages_are_dropped_and_warned():
@@ -132,3 +142,84 @@ def test_missing_total_falls_back_to_short_page_rule():
     source = MandiPrices(ctx.config)
     assert len(source.fetch(ctx)) == 3
     assert source.warnings == []
+
+
+class _PartitionedHttp:
+    """Fake portal with an offset ceiling, like the real one."""
+
+    OFFSET_CEILING = 6  # stands in for the real 10000
+
+    def __init__(self, rows, field="state"):
+        self.rows, self.field, self.calls = rows, field, 0
+
+    def get(self, url, params=None, **kw):
+        self.calls += 1
+        wanted = params.get(f"filters[{self.field}]")
+        pool = [r for r in self.rows if wanted is None or r[self.field] == wanted]
+        offset, limit = params["offset"], params["limit"]
+        page = [] if offset >= self.OFFSET_CEILING else pool[offset : offset + limit]
+        return _FakeResponse({"records": page, "total": len(pool)})
+
+
+def _partitioned_ctx(http, **partition):
+    cfg = SourceConfig(
+        domain="food_mandi",
+        options={"page_size": 2, "max_pages": 10, "partition": {"field": "state", **partition}},
+    )
+    return RunContext(date(2026, 8, 25), cfg, http, secrets={"data_gov_in": "k"})
+
+
+def _multi_state_rows():
+    rows = []
+    for state, n in (("Gujarat", 5), ("Kerala", 4), ("Assam", 3)):
+        rows += [{**LOWER[0], "state": state, "market": f"{state}-{i}"} for i in range(n)]
+    return rows
+
+
+def test_partitioning_reaches_rows_beyond_the_offset_ceiling():
+    rows = _multi_state_rows()  # 12 rows; a flat scan can only see 6
+    http = _PartitionedHttp(rows)
+    ctx = _partitioned_ctx(http, values=["Gujarat", "Kerala", "Assam"])
+    source = MandiPrices(ctx.config)
+    fetched = source.fetch(ctx)
+    assert len(fetched) == len(rows)  # complete, despite the ceiling
+    assert source.warnings == []
+
+
+def test_flat_scan_is_truncated_by_the_ceiling():
+    """Control: without partitioning the same portal yields a partial result."""
+    rows = _multi_state_rows()
+    cfg = SourceConfig(domain="food_mandi", options={"page_size": 2, "max_pages": 10})
+    ctx = RunContext(date(2026, 8, 25), cfg, _PartitionedHttp(rows), secrets={"data_gov_in": "k"})
+    source = MandiPrices(cfg)
+    assert len(source.fetch(ctx)) < len(rows)
+    assert any("of 12 reported" in w for w in source.warnings)
+
+
+def test_partition_values_are_discovered_from_live_data():
+    """No hand-maintained state list: the names come from the feed itself."""
+    rows = [{**LOWER[0], "state": s, "market": f"{s}-{i}"}
+            for s, n in (("Gujarat", 3), ("Kerala", 2)) for i in range(n)]
+    http = _PartitionedHttp(rows)
+    ctx = _partitioned_ctx(http, discovery_pages=3)
+    source = MandiPrices(ctx.config)
+    fetched = source.fetch(ctx)
+    assert {r["state"] for r in fetched} == {"Gujarat", "Kerala"}
+    assert source.warnings == []
+
+
+def test_pinned_values_recover_what_discovery_cannot_see():
+    """Discovery samples a capped window, so a value whose rows all sit past
+    the ceiling is invisible to it. The portal's loose filter matching makes
+    the reported totals too unreliable to detect that gap, so pinning the
+    values in config is the actual guarantee -- that path has to work.
+    """
+    rows = _multi_state_rows()  # Assam sits past the fake ceiling
+
+    ctx = _partitioned_ctx(_PartitionedHttp(rows), discovery_pages=3)
+    discovered = MandiPrices(ctx.config).fetch(ctx)
+    assert "Assam" not in {r["state"] for r in discovered}
+
+    pinned_ctx = _partitioned_ctx(_PartitionedHttp(rows), values=["Gujarat", "Kerala", "Assam"])
+    pinned = MandiPrices(pinned_ctx.config).fetch(pinned_ctx)
+    assert {r["state"] for r in pinned} == {"Gujarat", "Kerala", "Assam"}

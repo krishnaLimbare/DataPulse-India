@@ -20,6 +20,12 @@ sources:
       page_size: 1000
       # Circuit breaker only -- paging stops when the API's `total` is reached.
       max_pages: 50
+      # The portal will not serve past offset 10000, and the dataset is bigger
+      # than that. Slicing by state keeps every query under the ceiling, so the
+      # collection is complete and stable rather than a shifting ~10k sample.
+      partition:
+        field: state
+        discovery_pages: 10  # sample the whole reachable window before slicing
       summary:
         label: "Food & Mandi Prices"
         chart_title: "Average modal price by commodity (INR / quintal)"
