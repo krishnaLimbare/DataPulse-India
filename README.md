@@ -18,6 +18,46 @@ datapulse list
 datapulse run --source mandi_prices --dry-run
 ```
 
+## System Architecture & Data Flow
+
+```mermaid
+flowchart TB
+    subgraph Triggers["Execution"]
+        GHA["🤖 GitHub Actions (Nightly)"]
+        CLI["💻 Local CLI (datapulse run)"]
+    end
+
+    subgraph Engine["Core Engine (datapulse/core)"]
+        Runner["⚡ Runner"]
+        HTTP["🌐 PoliteHTTPClient"]
+        SchemaVal["🛡️ SchemaValidator"]
+        StorageEngine["💾 ParquetStorage"]
+    end
+
+    subgraph Sources["Modular Sources (datapulse/sources)"]
+        S1["🌾 Mandi Prices"]
+        S2["🏎️ Used Cars"]
+        S3["💼 Tech Jobs"]
+        S4["🏠 City Rents"]
+    end
+
+    subgraph Persistence["Storage Layer"]
+        PQ["📂 Parquet Datasets (datasets/)"]
+        Runs["📋 JSON Run Reports"]
+    end
+
+    GHA --> Runner
+    CLI --> Runner
+    Runner --> Sources
+    Sources --> HTTP
+    HTTP -->|Fetch| Web["External APIs & Sites"]
+    Web -->|Raw Data| Sources
+    Sources --> SchemaVal --> StorageEngine --> PQ
+    Runner --> Runs
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full sequence diagrams, process flowcharts, class models, and data contract specifications.
+
 ## Layout
 
 ```
