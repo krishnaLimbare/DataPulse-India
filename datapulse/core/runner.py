@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from .config import Settings
 from .http import HttpClient
-from .logging import get_logger
+from .logging import get_logger, scrub
 from .source import BaseSource, RunContext, registry
 from .storage import build_storage
 
@@ -25,8 +25,9 @@ log = get_logger(__name__)
 class SourceResult(BaseModel):
     name: str
     domain: str
-    status: str  # ok | skipped | failed
+    status: str  # ok | partial | skipped | failed
     rows: int = 0
+    warnings: list[str] = []
     path: str | None = None
     duration_seconds: float = 0.0
     error: str | None = None
@@ -48,6 +49,14 @@ class RunReport(BaseModel):
         path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
 
 
+def _relative(path: str) -> str:
+    """Report repo-relative paths: absolute ones leak the local username."""
+    try:
+        return Path(path).relative_to(Path(__file__).resolve().parents[2]).as_posix()
+    except ValueError:
+        return Path(path).name
+
+
 def _run_one(source: BaseSource, settings: Settings, run_date: date, storage) -> SourceResult:
     started = time.monotonic()
     cfg = source.config
@@ -59,18 +68,25 @@ def _run_one(source: BaseSource, settings: Settings, run_date: date, storage) ->
             max_retries=cfg.max_retries,
             respect_robots=settings.respect_robots_txt,
         ) as http:
-            ctx = RunContext(run_date, cfg, http, dry_run=settings.dry_run)
+            ctx = RunContext(
+                run_date,
+                cfg,
+                http,
+                dry_run=settings.dry_run,
+                secrets={k: v.get_secret_value() for k, v in settings.api_keys.items()},
+            )
             df = source.collect(ctx)
 
         path = None
         if settings.dry_run:
             log.info("[dry-run] %s produced %d rows; not written", source.name, len(df))
         else:
-            path = storage.write(source.domain, source.name, df, run_date)
+            path = _relative(storage.write(source.domain, source.name, df, run_date))
         return SourceResult(
             name=source.name,
             domain=source.domain,
-            status="ok",
+            status="partial" if source.warnings else "ok",
+            warnings=[scrub(w) for w in source.warnings],
             rows=len(df),
             path=path,
             duration_seconds=round(time.monotonic() - started, 2),
@@ -82,7 +98,8 @@ def _run_one(source: BaseSource, settings: Settings, run_date: date, storage) ->
             domain=source.domain,
             status="failed",
             duration_seconds=round(time.monotonic() - started, 2),
-            error=f"{type(exc).__name__}: {exc}",
+            # Never let a credential-bearing URL reach the committed run report.
+            error=scrub(f"{type(exc).__name__}: {exc}")[:500],
         )
 
 

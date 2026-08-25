@@ -1,13 +1,25 @@
 """Daily mandi (agricultural market) commodity prices from data.gov.in.
 
-Reference implementation — copy this file as the template for new sources.
+Reference implementation -- copy this file as the template for new sources.
 Needs a free API key: https://data.gov.in/help/how-use-datasets-apis
 Set it as `DATAPULSE_API_KEYS__DATA_GOV_IN` and flip `enabled: true` in config.
+
+Three quirks of this portal shape the code below, all verified against the
+live API rather than assumed:
+
+1. `offset` is refused past 10000, while the dataset holds ~16.5k rows. An
+   unpartitioned scan therefore sees a *different* ~60% slice every run, which
+   would make day-to-day price comparisons meaningless. Hence partitioning.
+2. `filters[...]` matches loosely: `filters[state]=Uttar Pradesh` also returns
+   Andhra, Madhya and Himachal Pradesh. Slices overlap heavily and per-slice
+   totals sum to far more than the dataset holds, so the union is de-duplicated
+   and those totals are not treated as a completeness measure.
+3. The unfiltered `total` (16,579) disagrees with the sum of per-state totals
+   (26,719). Neither number is authoritative, so neither gates the run.
 """
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import pandas as pd
@@ -17,6 +29,32 @@ from datapulse.core.source import BaseSource, RunContext, register
 
 RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
 ENDPOINT = f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+
+# Row identity for one day's snapshot -- what we de-duplicate on.
+# `grade` belongs here: a single market reports the same commodity+variety at
+# several grades with genuinely different prices (Grade Range-1/2/3), so
+# omitting it silently collapsed three real price points into one.
+PRIMARY_KEY = [
+    "state",
+    "district",
+    "market",
+    "commodity",
+    "variety",
+    "grade",
+    "arrival_date",
+]
+
+
+def _envelope_total(payload: dict[str, Any]) -> int | None:
+    """Read the upstream row count, tolerating the key being absent or junk."""
+    for key in ("total", "count"):
+        try:
+            value = int(payload[key])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+    return None
 
 
 @register
@@ -31,60 +69,178 @@ class MandiPrices(BaseSource):
             Column("market", "string"),
             Column("commodity", "string", nullable=False),
             Column("variety", "string"),
+            Column("grade", "string"),
             Column("arrival_date", "string"),
             Column("min_price", "float64"),
             Column("max_price", "float64"),
             Column("modal_price", "float64"),
             Column("source", "string", nullable=False),
         ],
+        primary_key=["collected_date", *PRIMARY_KEY],
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
-        api_key = os.getenv("DATAPULSE_API_KEYS__DATA_GOV_IN")
-        if not api_key:
-            raise RuntimeError(
-                "DATAPULSE_API_KEYS__DATA_GOV_IN is not set; get a free key at data.gov.in"
-            )
+        """Collect the day's rows, working around the portal's offset ceiling.
+
+        The API refuses to serve past offset 10000, but the dataset is larger
+        than that -- so an unpartitioned scan can only ever see the first ~10k
+        of ~16.5k rows, and a different ~10k each run as the portal writes to
+        it. Slicing the query by a low-cardinality field (state) keeps every
+        slice under the ceiling, which makes the collection both complete and
+        the same every day.
+
+        With no `partition` configured this falls back to a plain paged scan.
+        """
+        api_key = ctx.secret("data_gov_in")
         page_size = int(ctx.option("page_size", 1000))
-        max_pages = int(ctx.option("max_pages", 5))
+        max_pages = int(ctx.option("max_pages", 50))
+        partition = ctx.option("partition") or {}
+        field = partition.get("field")
+
+        if not field:
+            records, total = self._scan(ctx, api_key, page_size, max_pages)
+            self._check_completeness(len(records), total)
+            return records
+
+        values = partition.get("values") or self._discover_values(
+            ctx, api_key, page_size, field, int(partition.get("discovery_pages", 10))
+        )
+        if not values:
+            self.warn(f"could not determine any {field} values; falling back to a flat scan")
+            records, total = self._scan(ctx, api_key, page_size, max_pages)
+            self._check_completeness(len(records), total)
+            return records
+
+        self.log.info("collecting %d %s partitions", len(values), field)
         records: list[dict[str, Any]] = []
-        for page in range(max_pages):
-            resp = ctx.http.get(
-                ENDPOINT,
-                params={
-                    "api-key": api_key,
-                    "format": "json",
-                    "limit": page_size,
-                    "offset": page * page_size,
-                },
+        for value in values:
+            slice_rows, slice_total = self._scan(
+                ctx, api_key, page_size, max_pages, filters={f"filters[{field}]": value}
             )
-            resp.raise_for_status()
-            batch = resp.json().get("records", [])
-            records.extend(batch)
-            if len(batch) < page_size:
-                break
-        self.log.info("fetched %d mandi records", len(records))
+            if slice_total is not None and len(slice_rows) < slice_total:
+                self.warn(f"{field}={value}: got {len(slice_rows)} of {slice_total} rows")
+            records.extend(slice_rows)
+
+        # The portal's filters match loosely (`state=Uttar Pradesh` also returns
+        # Andhra/Madhya/Himachal Pradesh), so slices overlap and their totals
+        # sum to more than the dataset holds. The union is what matters; parse()
+        # de-duplicates it. Only a page-cap hit signals real truncation.
+        self.log.info(
+            "fetched %d rows across %d partitions (unfiltered total reported: %s)",
+            len(records),
+            len(values),
+            self._reported_total,
+        )
         return records
+
+    # -- helpers --------------------------------------------------------
+    _reported_total: int | None = None
+
+    def _scan(
+        self,
+        ctx: RunContext,
+        api_key: str,
+        page_size: int,
+        max_pages: int,
+        filters: dict[str, str] | None = None,
+        warn_on_cap: bool = True,
+    ) -> tuple[list[dict[str, Any]], int | None]:
+        """Page one query to exhaustion. Returns the rows and the reported total."""
+        records: list[dict[str, Any]] = []
+        total: int | None = None
+
+        for page in range(max_pages):
+            params = {
+                "api-key": api_key,
+                "format": "json",
+                "limit": page_size,
+                "offset": page * page_size,
+            }
+            params.update(filters or {})
+            resp = ctx.http.get(ENDPOINT, params=params)
+            resp.raise_for_status()
+            payload = resp.json()
+            batch = payload.get("records", [])
+            records.extend(batch)
+
+            if total is None:
+                total = _envelope_total(payload)
+                if filters is None and total is not None:
+                    self._reported_total = total
+                    self.log.info("upstream reports %d total records", total)
+
+            if len(batch) < page_size:
+                break  # short page: end of this query
+            if total is not None and len(records) >= total:
+                break
+        else:
+            if warn_on_cap:
+                self.warn(
+                    f"stopped at the {max_pages}-page cap with {len(records)} rows"
+                    + (f" of {total} reported" if total else "")
+                    + f" for {filters or 'the unfiltered query'}"
+                )
+        return records, total
+
+    def _discover_values(
+        self, ctx: RunContext, api_key: str, page_size: int, field: str, pages: int
+    ) -> list[str]:
+        """Learn the partition values from the data itself.
+
+        Hand-maintaining a list of states is fragile -- the portal uses its own
+        spellings ("Chattisgarh", "NCT of Delhi"), and a mismatch would silently
+        drop a whole region. Sampling the live feed avoids inventing names.
+        """
+        # Hitting the ceiling here is expected -- that is why we partition at
+        # all -- so it must not be recorded as a collection failure.
+        sample, _ = self._scan(ctx, api_key, page_size, pages, warn_on_cap=False)
+        seen = {
+            str(row[field]).strip()
+            for row in sample
+            if row.get(field) not in (None, "")
+        }
+        values = sorted(seen)
+        self.log.info("discovered %d distinct %s values", len(values), field)
+        if self._reported_total and len(sample) < self._reported_total:
+            # The sample itself was capped, so a value whose rows all sit past
+            # the ceiling is invisible here. The completeness check below is
+            # what catches that; pin `partition.values` in config to remove
+            # the risk entirely.
+            self.log.info(
+                "%s values discovered from %d of %d rows", field, len(sample), self._reported_total
+            )
+        return values
+
+    def _check_completeness(self, collected: int, total: int | None) -> None:
+        if total is not None and collected < total:
+            self.warn(f"collected {collected} of {total} reported rows")
 
     def parse(self, raw: list[dict[str, Any]], ctx: RunContext) -> pd.DataFrame:
         if not raw:
             return pd.DataFrame(columns=self.schema.names)
-        df = pd.DataFrame(raw).rename(
-            columns={
-                "state": "state",
-                "district": "district",
-                "market": "market",
-                "commodity": "commodity",
-                "variety": "variety",
-                "arrival_date": "arrival_date",
-                "min_price": "min_price",
-                "max_price": "max_price",
-                "modal_price": "modal_price",
-            }
-        )
-        for col in ("min_price", "max_price", "modal_price"):
-            df[col] = pd.to_numeric(df.get(col), errors="coerce")
+
+        # The portal has shipped both `min_price` and `Min_Price` across API
+        # versions, so normalise keys instead of trusting one casing.
+        df = pd.DataFrame(raw)
+        df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
         for col in self.schema.names:
             if col not in df.columns:
                 df[col] = pd.NA
+        for col in ("min_price", "max_price", "modal_price"):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # Offset paging over a dataset the portal is still writing to can hand
+        # back the same row on two pages. Drop those before the schema's
+        # primary-key check turns them into a hard failure.
+        before = len(df)
+        df = df.drop_duplicates(subset=PRIMARY_KEY, keep="last").reset_index(drop=True)
+        if dropped := before - len(df):
+            if ctx.option("partition"):
+                # Expected: the portal's filters match loosely, so state slices
+                # overlap by design and the union is meant to be de-duplicated.
+                self.log.info("dropped %d rows duplicated across partitions", dropped)
+            else:
+                # Unpartitioned, a repeat means the dataset shifted mid-scan.
+                self.warn(f"dropped {dropped} duplicate rows across page boundaries")
         return df

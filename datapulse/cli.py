@@ -13,6 +13,7 @@ from datapulse.core.config import REPO_ROOT, load_settings
 from datapulse.core.logging import setup_logging
 from datapulse.core.runner import run as run_pipeline
 from datapulse.core.source import registry
+from datapulse.core.summary import write_summary
 
 app = typer.Typer(help="DataPulse-India — multi-dataset daily data hub.", no_args_is_help=True)
 console = Console()
@@ -64,6 +65,18 @@ def run(
 
     if fail_fast and result.failed:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def summarize(
+    config: Path = typer.Option(None, "--config", "-c"),
+    out: Path = typer.Option(None, "--out", help="Defaults to dashboard/data/summary.json."),
+) -> None:
+    """Pre-aggregate the archive into the JSON the dashboard reads."""
+    settings = load_settings(config)
+    setup_logging(settings.log_level)
+    written = write_summary(settings, out or REPO_ROOT / "dashboard" / "data" / "summary.json")
+    console.print(f"[green]wrote[/] {written}")
 
 
 @app.command()

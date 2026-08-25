@@ -9,10 +9,22 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 from typing import Any
 
 _SECRET_HINTS = ("key", "token", "secret", "password", "auth", "cookie")
+
+# Credentials passed as query parameters leak through exception messages,
+# which end up in committed run reports. Scrub anything that looks like one.
+_QUERY_SECRET = re.compile(
+    r"(?i)([?&](?:api[-_]?key|key|token|access[-_]?token|secret|password|auth|sig)=)[^&\s'\"]+"
+)
+
+
+def scrub(text: str) -> str:
+    """Mask credentials embedded in URLs inside an arbitrary string."""
+    return _QUERY_SECRET.sub(r"\1***redacted***", text)
 
 
 def redact(value: Any, key: str = "") -> Any:
@@ -24,19 +36,26 @@ def redact(value: Any, key: str = "") -> Any:
     return value
 
 
+class ScrubbingFormatter(logging.Formatter):
+    """Plain-text formatter that masks credentials before anything is printed."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return scrub(super().format(record))
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
             "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
             "level": record.levelname,
             "logger": record.name,
-            "msg": record.getMessage(),
+            "msg": scrub(record.getMessage()),
         }
         extra = getattr(record, "context", None)
         if extra:
             payload["context"] = redact(extra)
         if record.exc_info:
-            payload["exc"] = self.formatException(record.exc_info)
+            payload["exc"] = scrub(self.formatException(record.exc_info))
         return json.dumps(payload, default=str)
 
 
@@ -47,11 +66,16 @@ def setup_logging(level: str = "INFO", json_logs: bool | None = None) -> None:
     handler.setFormatter(
         JsonFormatter()
         if json_logs
-        else logging.Formatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s", "%H:%M:%S")
+        else ScrubbingFormatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s", "%H:%M:%S")
     )
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level.upper())
+
+    # httpx logs every request URL at INFO, and credentials ride in the query
+    # string. Formatters scrub them, but there is no reason to emit them at all.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:

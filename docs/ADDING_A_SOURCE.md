@@ -40,7 +40,8 @@ Rules of thumb:
   source legitimately has no data today.
 - Put anything you might tune (URLs, page sizes, city lists) in `options` in YAML,
   not in the module.
-- Never read `os.environ` for non-secrets; use `ctx.option`. Secrets go through env
-  with a clear error message when missing.
+- Never read `os.environ` directly. Non-secret tuning is `ctx.option("key", default)`;
+  credentials are `ctx.secret("data_gov_in")`, which reads
+  `DATAPULSE_API_KEYS__DATA_GOV_IN` and raises `MissingSecret` with the variable name.
 - If a site's terms forbid redistribution, set `publishable = False` and keep the
   output out of the committed `datasets/` tree.

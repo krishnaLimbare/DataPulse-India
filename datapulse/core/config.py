@@ -45,7 +45,11 @@ class Settings(BaseSettings):
     """Runtime settings. Secrets come from env only (`DATAPULSE_*`)."""
 
     model_config = SettingsConfigDict(
-        env_prefix="DATAPULSE_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_prefix="DATAPULSE_",
+        env_nested_delimiter="__",  # DATAPULSE_API_KEYS__DATA_GOV_IN -> api_keys["data_gov_in"]
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     environment: str = "local"
@@ -59,8 +63,13 @@ class Settings(BaseSettings):
     storage: StorageConfig = Field(default_factory=StorageConfig)
     sources: dict[str, SourceConfig] = Field(default_factory=dict)
 
-    # Optional credentials for sources that need them. Add more as sources grow.
+    # Credentials for sources that need them, populated from env only.
     api_keys: dict[str, SecretStr] = Field(default_factory=dict)
+
+    def secret(self, name: str) -> str | None:
+        """Look up a credential by lowercase name, e.g. "data_gov_in"."""
+        value = self.api_keys.get(name.lower())
+        return value.get_secret_value() if value else None
 
 
 def load_settings(config_path: Path | None = None) -> Settings:

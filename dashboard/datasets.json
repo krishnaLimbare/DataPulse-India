@@ -1,8 +1,0 @@
-[
-  {
-    "id": "mandi_prices",
-    "label": "Food & Mandi Prices",
-    "description": "Daily commodity prices from agricultural markets (data.gov.in).",
-    "path": "../datasets/food_mandi/mandi_prices/"
-  }
-]
