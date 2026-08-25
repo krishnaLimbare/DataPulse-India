@@ -9,10 +9,22 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 from typing import Any
 
 _SECRET_HINTS = ("key", "token", "secret", "password", "auth", "cookie")
+
+# Credentials passed as query parameters leak through exception messages,
+# which end up in committed run reports. Scrub anything that looks like one.
+_QUERY_SECRET = re.compile(
+    r"(?i)([?&](?:api[-_]?key|key|token|access[-_]?token|secret|password|auth|sig)=)[^&\s'\"]+"
+)
+
+
+def scrub(text: str) -> str:
+    """Mask credentials embedded in URLs inside an arbitrary string."""
+    return _QUERY_SECRET.sub(r"\1***redacted***", text)
 
 
 def redact(value: Any, key: str = "") -> Any:
@@ -30,13 +42,13 @@ class JsonFormatter(logging.Formatter):
             "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
             "level": record.levelname,
             "logger": record.name,
-            "msg": record.getMessage(),
+            "msg": scrub(record.getMessage()),
         }
         extra = getattr(record, "context", None)
         if extra:
             payload["context"] = redact(extra)
         if record.exc_info:
-            payload["exc"] = self.formatException(record.exc_info)
+            payload["exc"] = scrub(self.formatException(record.exc_info))
         return json.dumps(payload, default=str)
 
 

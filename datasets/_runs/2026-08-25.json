@@ -1,16 +1,16 @@
 {
   "run_date": "2026-08-25",
-  "started_at": "2026-08-25T10:18:48.390713Z",
-  "finished_at": "2026-08-25T10:18:48.391356Z",
-  "dry_run": true,
+  "started_at": "2026-08-25T11:26:38.844278Z",
+  "finished_at": "2026-08-25T11:26:43.587524Z",
+  "dry_run": false,
   "results": [
     {
       "name": "mandi_prices",
       "domain": "food_mandi",
-      "status": "skipped",
-      "rows": 0,
-      "path": null,
-      "duration_seconds": 0.0,
+      "status": "ok",
+      "rows": 5000,
+      "path": "datasets/food_mandi/mandi_prices/year=2026/month=08/mandi_prices_2026-08-25.parquet",
+      "duration_seconds": 4.74,
       "error": null
     }
   ]
