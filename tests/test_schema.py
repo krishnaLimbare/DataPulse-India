@@ -30,3 +30,13 @@ def test_non_nullable_and_uniqueness_enforced():
         SCHEMA.validate(pd.DataFrame({"id": [None], "city": ["x"], "price": [1.0]}))
     with pytest.raises(SchemaError, match="unique"):
         SCHEMA.validate(pd.DataFrame({"id": [1, 1], "city": ["x", "y"], "price": [1.0, 2.0]}))
+
+
+def test_scrub_masks_credentials_in_urls():
+    from datapulse.core.logging import scrub
+
+    msg = "HTTPStatusError for url 'https://api.data.gov.in/r/x?api-key=SUPERSECRET&format=json'"
+    out = scrub(msg)
+    assert "SUPERSECRET" not in out
+    assert "api-key=***redacted***" in out
+    assert "format=json" in out  # non-secret params survive

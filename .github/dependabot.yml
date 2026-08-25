@@ -1,8 +1,24 @@
+# Branch flow: feature -> develop -> main.
+# Dependabot must never open PRs against main; they enter at the feature branch
+# and travel the same path as any other change.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
+    target-branch: "Initial_Feature_20260825"
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      # One PR per ecosystem instead of one per package — 10 open PRs is noise,
+      # and these deps are only ever bumped together anyway.
+      python-dependencies:
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     directory: "/"
+    target-branch: "Initial_Feature_20260825"
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]

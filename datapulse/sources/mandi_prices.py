@@ -7,7 +7,6 @@ Set it as `DATAPULSE_API_KEYS__DATA_GOV_IN` and flip `enabled: true` in config.
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import pandas as pd
@@ -40,11 +39,7 @@ class MandiPrices(BaseSource):
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
-        api_key = os.getenv("DATAPULSE_API_KEYS__DATA_GOV_IN")
-        if not api_key:
-            raise RuntimeError(
-                "DATAPULSE_API_KEYS__DATA_GOV_IN is not set; get a free key at data.gov.in"
-            )
+        api_key = ctx.secret("data_gov_in")
         page_size = int(ctx.option("page_size", 1000))
         max_pages = int(ctx.option("max_pages", 5))
         records: list[dict[str, Any]] = []
@@ -69,22 +64,15 @@ class MandiPrices(BaseSource):
     def parse(self, raw: list[dict[str, Any]], ctx: RunContext) -> pd.DataFrame:
         if not raw:
             return pd.DataFrame(columns=self.schema.names)
-        df = pd.DataFrame(raw).rename(
-            columns={
-                "state": "state",
-                "district": "district",
-                "market": "market",
-                "commodity": "commodity",
-                "variety": "variety",
-                "arrival_date": "arrival_date",
-                "min_price": "min_price",
-                "max_price": "max_price",
-                "modal_price": "modal_price",
-            }
-        )
-        for col in ("min_price", "max_price", "modal_price"):
-            df[col] = pd.to_numeric(df.get(col), errors="coerce")
+
+        # The portal has shipped both `min_price` and `Min_Price` across API
+        # versions, so normalise keys instead of trusting one casing.
+        df = pd.DataFrame(raw)
+        df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
         for col in self.schema.names:
             if col not in df.columns:
                 df[col] = pd.NA
+        for col in ("min_price", "max_price", "modal_price"):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
         return df

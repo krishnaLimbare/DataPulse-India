@@ -12,7 +12,7 @@ storage:
 
 sources:
   mandi_prices:
-    enabled: false            # needs DATAPULSE_API_KEYS__DATA_GOV_IN
+    enabled: true            # needs DATAPULSE_API_KEYS__DATA_GOV_IN
     domain: food_mandi
     schedule: daily
     rate_limit_per_sec: 1.0
