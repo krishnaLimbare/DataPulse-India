@@ -40,3 +40,22 @@ def test_scrub_masks_credentials_in_urls():
     assert "SUPERSECRET" not in out
     assert "api-key=***redacted***" in out
     assert "format=json" in out  # non-secret params survive
+
+
+def test_plain_text_logs_are_scrubbed_too(caplog, capsys):
+    import logging
+
+    from datapulse.core.logging import setup_logging
+
+    setup_logging("INFO", json_logs=False)
+    logging.getLogger("t").info("GET https://x.in/r?api-key=LEAKME&format=json")
+    assert "LEAKME" not in capsys.readouterr().out
+
+
+def test_httpx_request_logging_is_silenced():
+    import logging
+
+    from datapulse.core.logging import setup_logging
+
+    setup_logging("INFO")
+    assert logging.getLogger("httpx").level == logging.WARNING

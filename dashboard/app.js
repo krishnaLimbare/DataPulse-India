@@ -1,214 +1,216 @@
-// Interactive DataPulse-India Dashboard Engine
+// DataPulse-India dashboard.
+//
+// Every figure rendered here comes from data/summary.json, which the pipeline
+// generates from the collected parquet (`datapulse summarize`). Nothing on this
+// page is hardcoded sample data -- if a dataset has not been collected yet, it
+// says so rather than showing a placeholder number.
 
-// Sample live data extracted from initial run for instant UI rendering
-const SAMPLE_MANDI_DATA = [
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Mango", variety: "Neelam", min_price: 5000, max_price: 6000, modal_price: 5500 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Potato", variety: "Jyoti", min_price: 2800, max_price: 3400, modal_price: 3100 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Tomato", variety: "Local", min_price: 1800, max_price: 2400, modal_price: 2100 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Onion", variety: "Nasik", min_price: 3200, max_price: 3800, modal_price: 3500 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Cauliflower", variety: "Ranchi", min_price: 3000, max_price: 4000, modal_price: 3500 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Bhindi", variety: "Bhindi", min_price: 3000, max_price: 3800, modal_price: 3400 },
-  { state: "Tamil Nadu", district: "Karur", market: "Kulithalai", commodity: "Cabbage", variety: "Cabbage", min_price: 3500, max_price: 4000, modal_price: 3750 },
-  { state: "Andhra Pradesh", district: "Srikakulam", market: "Etcherla APMC", commodity: "Paddy(Common)", variety: "1121", min_price: 2369, max_price: 2369, modal_price: 2369 },
-  { state: "Madhya Pradesh", district: "Indore", market: "Indore APMC", commodity: "Potato", variety: "Desi", min_price: 2200, max_price: 2600, modal_price: 2400 },
-  { state: "Madhya Pradesh", district: "Indore", market: "Indore APMC", commodity: "Onion", variety: "Red", min_price: 2900, max_price: 3300, modal_price: 3100 },
-  { state: "Gujarat", district: "Rajkot", market: "Rajkot APMC", commodity: "Tomato", variety: "Hybrid", min_price: 1600, max_price: 2200, modal_price: 1900 },
-  { state: "Punjab", district: "Ludhiana", market: "Ludhiana APMC", commodity: "Potato", variety: "Kufri", min_price: 2400, max_price: 2900, modal_price: 2650 }
-];
+const SUMMARY_URL = "data/summary.json";
+const $ = (id) => document.getElementById(id);
 
-const DOMAIN_METRICS = {
-  mandi: {
-    title: "🌾 Food & Mandi Price Index",
-    description: "Daily commodity prices collected from 250+ agricultural wholesale markets across India.",
-    totalRows: "5,000",
-    markets: "250+",
-    topCommodity: "Potato",
-    status: "100% Green",
-    chartTitle: "📊 Average Modal Price by Commodity (₹ / Quintal)",
-    chartData: {
-      labels: ["Mango", "Cabbage", "Onion", "Cauliflower", "Bhindi", "Potato", "Paddy", "Tomato"],
-      values: [5500, 3750, 3300, 3500, 3400, 2716, 2369, 2000]
-    }
-  },
-  cars: {
-    title: "🏎️ Used Car Valuation Index",
-    description: "Tracking used vehicle resale price depreciation trends across Indian cities.",
-    totalRows: "Pipeline Ready",
-    markets: "12 Cities",
-    topCommodity: "Maruti Swift",
-    status: "Source Preview",
-    chartTitle: "📊 Average Used Car Resale Value by Model (₹ Lakhs)",
-    chartData: {
-      labels: ["Fortuner", "Creta", "City", "Swift", "Baleno", "i20"],
-      values: [28.5, 11.2, 8.4, 5.8, 6.2, 5.4]
-    }
-  },
-  jobs: {
-    title: "💼 Tech Skill Demand Tracker",
-    description: "Monitoring hiring demand and salary indexes for tech skills across India.",
-    totalRows: "Pipeline Ready",
-    markets: "6 Tech Hubs",
-    topCommodity: "Python",
-    status: "Source Preview",
-    chartTitle: "📊 Developer Skill Hiring Demand Index",
-    chartData: {
-      labels: ["Python", "React", "SQL", "Docker", "Flutter", "Java"],
-      values: [92, 85, 78, 74, 68, 65]
-    }
-  },
-  rents: {
-    title: "🏠 Metro Housing Rent Index",
-    description: "Tracking apartment rental inflation across Bangalore, Mumbai, Pune, and Delhi-NCR.",
-    totalRows: "Pipeline Ready",
-    markets: "4 Metros",
-    topCommodity: "2BHK Rent",
-    status: "Source Preview",
-    chartTitle: "📊 Average Monthly 2BHK Rent (₹ Thousands)",
-    chartData: {
-      labels: ["Mumbai", "Bangalore", "Gurgaon", "Pune", "Hyderabad", "Chennai"],
-      values: [55, 38, 35, 26, 24, 22]
-    }
-  }
-};
+const state = { datasets: [], active: null, filter: "all", query: "" };
 
-let currentChart = null;
-let currentDomain = "mandi";
+const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : n ?? "—");
+const esc = (s) =>
+  String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const titleCase = (c) => c.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+const cell = (v) =>
+  v === null || v === undefined ? "—" : typeof v === "number" ? v.toLocaleString("en-IN") : v;
+const emptyState = (msg) => `<p class="muted empty-state">${esc(msg)}</p>`;
 
-// Initialize Dashboard
-document.addEventListener("DOMContentLoaded", () => {
-  setupTabs();
-  setupSearch();
-  setupFilterPills();
-  renderDomain("mandi");
-});
-
-function setupTabs() {
-  const tabs = document.querySelectorAll(".tab-btn");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      const domain = tab.dataset.domain;
-      renderDomain(domain);
-    });
-  });
-}
-
-function renderDomain(domain) {
-  currentDomain = domain;
-  const config = DOMAIN_METRICS[domain];
-  
-  // Update Header & KPIs
-  document.getElementById("panelTitle").textContent = config.title;
-  document.getElementById("panelDescription").textContent = config.description;
-  document.getElementById("kpiTotalRows").textContent = config.totalRows;
-  document.getElementById("kpiMarkets").textContent = config.markets;
-  document.getElementById("kpiTopCommodity").textContent = config.topCommodity;
-
-  // Render Chart
-  renderChart(config.chartTitle, config.chartData);
-
-  // Render Table
-  renderTable(SAMPLE_MANDI_DATA);
-}
-
-function renderChart(title, chartData) {
-  const ctx = document.getElementById("analyticsChart").getContext("2d");
-  
-  if (currentChart) {
-    currentChart.destroy();
-  }
-
-  currentChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: chartData.labels,
-      datasets: [{
-        label: title,
-        data: chartData.values,
-        backgroundColor: "rgba(56, 189, 248, 0.6)",
-        borderColor: "#38bdf8",
-        borderWidth: 2,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        x: {
-          grid: { color: "#232d45" },
-          ticks: { color: "#94a3b8", font: { family: "Plus Jakarta Sans" } }
-        },
-        y: {
-          grid: { color: "#232d45" },
-          ticks: { color: "#94a3b8", font: { family: "Plus Jakarta Sans" } }
-        }
-      }
-    }
-  });
-}
-
-function renderTable(data) {
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
-
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${row.state}</strong></td>
-      <td>${row.district} / ${row.market}</td>
-      <td><strong>${row.commodity}</strong></td>
-      <td>${row.variety}</td>
-      <td>₹${row.min_price.toLocaleString('en-IN')}</td>
-      <td>₹${row.max_price.toLocaleString('en-IN')}</td>
-      <td class="price-tag">₹${row.modal_price.toLocaleString('en-IN')}</td>
-      <td><span class="status-tag">Validated</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function setupSearch() {
-  const searchInput = document.getElementById("searchInput");
-  searchInput.addEventListener("input", (e) => {
-    const query = e.target.value.toLowerCase().trim();
-    filterData(query);
-  });
-}
-
-function setupFilterPills() {
-  const pills = document.querySelectorAll(".filter-pills .pill");
-  pills.forEach(pill => {
-    pill.addEventListener("click", () => {
-      pills.forEach(p => p.classList.remove("active"));
-      pill.classList.add("active");
-      const filter = pill.dataset.filter;
-      if (filter === "all") {
-        renderTable(SAMPLE_MANDI_DATA);
-      } else {
-        const filtered = SAMPLE_MANDI_DATA.filter(d => d.commodity.toLowerCase() === filter.toLowerCase());
-        renderTable(filtered);
-      }
-    });
-  });
-}
-
-function filterData(query) {
-  if (!query) {
-    renderTable(SAMPLE_MANDI_DATA);
+async function init() {
+  let summary;
+  try {
+    const resp = await fetch(SUMMARY_URL, { cache: "no-store" });
+    if (!resp.ok) throw new Error(String(resp.status));
+    summary = await resp.json();
+  } catch {
+    $("pipelineStatus").textContent = "Summary unavailable";
+    $("panelDescription").textContent =
+      "data/summary.json could not be loaded. It is generated by `datapulse summarize` during the nightly run.";
     return;
   }
 
-  const filtered = SAMPLE_MANDI_DATA.filter(item => 
-    item.commodity.toLowerCase().includes(query) ||
-    item.state.toLowerCase().includes(query) ||
-    item.district.toLowerCase().includes(query) ||
-    item.market.toLowerCase().includes(query)
-  );
+  state.datasets = summary.datasets || [];
+  $("provenance").textContent =
+    `Summary generated ${summary.generated_at} · every figure on this page is derived from the collected dataset.`;
 
-  renderTable(filtered);
+  const collecting = state.datasets.filter((d) => d.rows > 0).length;
+  $("pipelineStatus").textContent =
+    collecting > 0 ? `${collecting} dataset${collecting > 1 ? "s" : ""} collecting` : "No data yet";
+
+  renderTabs();
+  select(state.datasets.find((d) => d.rows > 0) || state.datasets[0]);
 }
+
+function renderTabs() {
+  const nav = $("domainTabs");
+  nav.innerHTML = "";
+  state.datasets.forEach((d) => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (d.rows === 0 ? " is-empty" : "");
+    // A dataset with no rows is labelled as such -- never dressed up as live.
+    const tag =
+      d.rows > 0 ? `${fmt(d.rows)} rows · ${d.days} day${d.days > 1 ? "s" : ""}` : "Not collecting yet";
+    btn.innerHTML = '<span class="tab-info"><span class="tab-title"></span><span class="tab-tag"></span></span>';
+    btn.querySelector(".tab-title").textContent = d.label;
+    btn.querySelector(".tab-tag").textContent = tag;
+    btn.onclick = () => select(d);
+    nav.append(btn);
+  });
+}
+
+function select(dataset) {
+  if (!dataset) return;
+  state.active = dataset;
+  state.filter = "all";
+  state.query = "";
+  const searchBox = $("searchInput");
+  if (searchBox) searchBox.value = "";
+
+  const idx = state.datasets.indexOf(dataset);
+  [...$("domainTabs").children].forEach((b, i) => b.classList.toggle("active", i === idx));
+
+  $("panelTitle").textContent = dataset.label;
+  $("chartTitle").textContent = dataset.chart_title || "";
+
+  if (!dataset.rows) {
+    $("panelDescription").textContent =
+      "This dataset has no collected data yet. Its pipeline is defined but not enabled.";
+    $("chartBadge").textContent = "";
+    $("analyticsChart").innerHTML = emptyState("No data collected for this dataset yet.");
+    $("tableHead").innerHTML = "";
+    $("tableBody").innerHTML = "";
+    $("filterPills").innerHTML = "";
+    setKpis(null);
+    return;
+  }
+
+  $("panelDescription").textContent = dataset.preview_note;
+  $("chartBadge").textContent = `Top ${dataset.chart.labels.length}`;
+  setKpis(dataset);
+  drawChart(dataset.chart);
+  renderPills(dataset);
+  renderTable(dataset);
+}
+
+function setKpis(d) {
+  const values = ["kpiTotalRows", "kpiMarkets", "kpiTopCommodity", "kpiStatus"];
+  const subs = ["kpiTotalRowsSub", "kpiMarketsSub", "kpiTopCommoditySub", "kpiStatusSub"];
+  if (!d) {
+    values.forEach((id) => ($(id).textContent = "—"));
+    subs.forEach((id) => ($(id).textContent = ""));
+    return;
+  }
+  const distinct = (d.stats && d.stats.distinct) || {};
+  const top = d.stats && d.stats.top_by_count;
+
+  $("kpiTotalRows").textContent = fmt(d.rows);
+  $("kpiTotalRowsSub").textContent = `across ${d.days} collection day${d.days > 1 ? "s" : ""}`;
+
+  $("kpiMarkets").textContent = fmt(distinct.market);
+  $("kpiMarketsSub").textContent = distinct.state ? `in ${fmt(distinct.state)} states & UTs` : "";
+
+  $("kpiTopCommodity").textContent = top ? top.value : "—";
+  $("kpiTopCommoditySub").textContent = top ? `${fmt(top.reports)} market reports` : "";
+
+  $("kpiStatus").textContent = d.last_collected || "—";
+  $("kpiStatusSub").textContent = "schema-validated on write";
+}
+
+// Bar chart drawn as inline SVG -- no chart library, so nothing loads from a CDN.
+function drawChart(chart) {
+  const host = $("analyticsChart");
+  const labels = chart.labels || [];
+  const values = chart.values || [];
+  if (!labels.length) {
+    host.innerHTML = emptyState("No chartable values for this dataset.");
+    return;
+  }
+
+  const W = 900;
+  const H = 400;
+  const pad = { top: 16, right: 16, bottom: 110, left: 72 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+  const max = Math.max(...values) || 1;
+  const band = plotW / labels.length;
+  const barW = Math.min(band * 0.62, 56);
+  const ticks = 4;
+
+  const grid = Array.from({ length: ticks + 1 }, (_, i) => {
+    const v = (max / ticks) * i;
+    const y = pad.top + plotH - (v / max) * plotH;
+    return (
+      `<line x1="${pad.left}" y1="${y}" x2="${W - pad.right}" y2="${y}" class="grid"/>` +
+      `<text x="${pad.left - 10}" y="${y + 4}" class="axis" text-anchor="end">${Math.round(v).toLocaleString("en-IN")}</text>`
+    );
+  }).join("");
+
+  const bars = labels
+    .map((label, i) => {
+      const v = values[i];
+      const h = (v / max) * plotH;
+      const x = pad.left + band * i + (band - barW) / 2;
+      const y = pad.top + plotH - h;
+      const labelY = pad.top + plotH + 18;
+      const short = label.length > 16 ? label.slice(0, 15) + "…" : label;
+      return (
+        `<g><rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="5" class="bar">` +
+        `<title>${esc(label)}: ${v.toLocaleString("en-IN")}</title></rect>` +
+        `<text x="${x + barW / 2}" y="${labelY}" class="axis tick" text-anchor="end" ` +
+        `transform="rotate(-40 ${x + barW / 2} ${labelY})">${esc(short)}</text></g>`
+      );
+    })
+    .join("");
+
+  host.innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" preserveAspectRatio="xMidYMid meet" ` +
+    `aria-label="${esc($("chartTitle").textContent)}">${grid}` +
+    `<line x1="${pad.left}" y1="${pad.top + plotH}" x2="${W - pad.right}" y2="${pad.top + plotH}" class="axis-line"/>` +
+    `${bars}</svg>`;
+}
+
+function renderPills(dataset) {
+  // Pills come from the data's own top values, so they always match what is there.
+  const host = $("filterPills");
+  host.innerHTML = "";
+  ["all"].concat(dataset.chart.labels.slice(0, 5)).forEach((v) => {
+    const b = document.createElement("button");
+    b.className = "pill" + (v === state.filter ? " active" : "");
+    b.textContent = v === "all" ? "All" : v;
+    b.onclick = () => {
+      state.filter = v;
+      renderPills(dataset);
+      renderTable(dataset);
+    };
+    host.append(b);
+  });
+}
+
+function renderTable(dataset) {
+  const rows = dataset.preview || [];
+  const columns = rows.length ? Object.keys(rows[0]) : [];
+  $("tableHead").innerHTML = `<tr>${columns.map((c) => `<th>${esc(titleCase(c))}</th>`).join("")}</tr>`;
+
+  const q = state.query.toLowerCase();
+  const pill = state.filter.toLowerCase();
+  const visible = rows.filter((r) => {
+    const blob = Object.values(r).join(" ").toLowerCase();
+    return (!q || blob.includes(q)) && (state.filter === "all" || blob.includes(pill));
+  });
+
+  $("tableBody").innerHTML = visible.length
+    ? visible.map((r) => `<tr>${columns.map((c) => `<td>${esc(cell(r[c]))}</td>`).join("")}</tr>`).join("")
+    : `<tr><td colspan="${columns.length || 1}" class="muted">No rows match this filter.</td></tr>`;
+}
+
+const search = $("searchInput");
+if (search) {
+  search.addEventListener("input", (e) => {
+    state.query = e.target.value;
+    if (state.active) renderTable(state.active);
+  });
+}
+
+init();
