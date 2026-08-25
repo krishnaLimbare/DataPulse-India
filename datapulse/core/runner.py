@@ -25,8 +25,9 @@ log = get_logger(__name__)
 class SourceResult(BaseModel):
     name: str
     domain: str
-    status: str  # ok | skipped | failed
+    status: str  # ok | partial | skipped | failed
     rows: int = 0
+    warnings: list[str] = []
     path: str | None = None
     duration_seconds: float = 0.0
     error: str | None = None
@@ -84,7 +85,8 @@ def _run_one(source: BaseSource, settings: Settings, run_date: date, storage) ->
         return SourceResult(
             name=source.name,
             domain=source.domain,
-            status="ok",
+            status="partial" if source.warnings else "ok",
+            warnings=[scrub(w) for w in source.warnings],
             rows=len(df),
             path=path,
             duration_seconds=round(time.monotonic() - started, 2),

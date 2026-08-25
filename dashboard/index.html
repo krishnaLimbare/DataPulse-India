@@ -30,7 +30,7 @@
     <div class="header-actions">
       <div class="status-badge">
         <span class="dot"></span>
-        <span class="status-text">Pipeline Active</span>
+        <span class="status-text" id="pipelineStatus">Loading&hellip;</span>
       </div>
       <a href="https://github.com/KrishnaLimbare/DataPulse-India" target="_blank" class="github-btn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -45,81 +45,36 @@
     <section class="hero">
       <div class="hero-content">
         <h1>Real-time Economic Indicators across India</h1>
-        <p>Automated daily pipelines tracking commodity prices, used car valuations, tech skill demand, and city rent inflation.</p>
+        <p id="heroSub">Automated daily pipelines archiving Indian open data. Every number on this page is generated from the collected dataset.</p>
       </div>
     </section>
 
     <!-- Main Domain Navigation Tabs (Baby-simple UX) -->
     <nav class="domain-tabs" id="domainTabs" aria-label="Dataset Domains">
-      <button class="tab-btn active" data-domain="mandi">
-        <span class="tab-icon">🌾</span>
-        <span class="tab-info">
-          <span class="tab-title">Food & Mandi Prices</span>
-          <span class="tab-tag">Daily Updated • 5,000+ Rows</span>
-        </span>
-      </button>
-      
-      <button class="tab-btn" data-domain="cars">
-        <span class="tab-icon">🏎️</span>
-        <span class="tab-info">
-          <span class="tab-title">Used Car Index</span>
-          <span class="tab-tag">Valuation Pipeline</span>
-        </span>
-      </button>
-      
-      <button class="tab-btn" data-domain="jobs">
-        <span class="tab-icon">💼</span>
-        <span class="tab-info">
-          <span class="tab-title">Tech Skill Demand</span>
-          <span class="tab-tag">Hiring Trends</span>
-        </span>
-      </button>
-      
-      <button class="tab-btn" data-domain="rents">
-        <span class="tab-icon">🏠</span>
-        <span class="tab-info">
-          <span class="tab-title">City Rent Monitor</span>
-          <span class="tab-tag">Metro Inflation</span>
-        </span>
-      </button>
+      <!-- Rendered from data/summary.json by app.js -->
     </nav>
 
     <!-- KPI Summary Metrics Grid -->
-    <section class="kpi-grid">
+    <section class="kpi-grid" id="kpiGrid">
       <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Total Rows Collected</span>
-          <span class="kpi-icon">📦</span>
-        </div>
-        <div class="kpi-value" id="kpiTotalRows">5,000</div>
-        <div class="kpi-subtext">Single-day snapshot</div>
+        <div class="kpi-header"><span class="kpi-title">Rows Collected</span><span class="kpi-icon">&#128230;</span></div>
+        <div class="kpi-value" id="kpiTotalRows">&mdash;</div>
+        <div class="kpi-subtext" id="kpiTotalRowsSub">&nbsp;</div>
       </div>
-
       <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Active Markets Covered</span>
-          <span class="kpi-icon">📍</span>
-        </div>
-        <div class="kpi-value" id="kpiMarkets">250+</div>
-        <div class="kpi-subtext">Across 18 States & UTs</div>
+        <div class="kpi-header"><span class="kpi-title">Markets Covered</span><span class="kpi-icon">&#128205;</span></div>
+        <div class="kpi-value" id="kpiMarkets">&mdash;</div>
+        <div class="kpi-subtext" id="kpiMarketsSub">&nbsp;</div>
       </div>
-
       <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Top Traded Commodity</span>
-          <span class="kpi-icon">🥔</span>
-        </div>
-        <div class="kpi-value" id="kpiTopCommodity">Potato</div>
-        <div class="kpi-subtext">185 Market Reports Today</div>
+        <div class="kpi-header"><span class="kpi-title">Most Reported</span><span class="kpi-icon">&#128200;</span></div>
+        <div class="kpi-value" id="kpiTopCommodity">&mdash;</div>
+        <div class="kpi-subtext" id="kpiTopCommoditySub">&nbsp;</div>
       </div>
-
       <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Pipeline Status</span>
-          <span class="kpi-icon">⚡</span>
-        </div>
-        <div class="kpi-value green-text">100% Green</div>
-        <div class="kpi-subtext">Schema Validated • 0 Errors</div>
+        <div class="kpi-header"><span class="kpi-title">Last Collected</span><span class="kpi-icon">&#9889;</span></div>
+        <div class="kpi-value" id="kpiStatus">&mdash;</div>
+        <div class="kpi-subtext" id="kpiStatusSub">&nbsp;</div>
       </div>
     </section>
 
@@ -133,20 +88,19 @@
           <p id="panelDescription" class="muted">Live commodity prices collected from agricultural wholesale markets across India (data.gov.in).</p>
         </div>
         <div class="panel-actions">
-          <a href="../datasets/food_mandi/mandi_prices/" target="_blank" class="secondary-btn">
-            💾 Download Raw Parquet
-          </a>
+          <a id="dataLink" href="https://github.com/krishnaLimbare/DataPulse-India/tree/develop/datasets"
+             target="_blank" rel="noopener" class="secondary-btn">Browse raw parquet on GitHub</a>
         </div>
       </div>
 
       <!-- Interactive Chart Section -->
       <div class="chart-card">
         <div class="chart-header">
-          <h3>📊 Average Modal Price by Top Commodities (₹ / Quintal)</h3>
-          <span class="badge">Live Analytics</span>
+          <h3 id="chartTitle">Loading&hellip;</h3>
+          <span class="badge" id="chartBadge">&nbsp;</span>
         </div>
         <div class="chart-container">
-          <canvas id="analyticsChart"></canvas>
+          <div id="analyticsChart"></div>
         </div>
       </div>
 
@@ -158,33 +112,14 @@
             <input type="text" id="searchInput" placeholder="Search commodity (e.g. Potato, Tomato, Onion) or state (e.g. Tamil Nadu)...">
           </div>
           
-          <div class="filter-pills" id="filterPills">
-            <button class="pill active" data-filter="all">All</button>
-            <button class="pill" data-filter="Potato">Potato</button>
-            <button class="pill" data-filter="Tomato">Tomato</button>
-            <button class="pill" data-filter="Onion">Onion</button>
-            <button class="pill" data-filter="Bhindi">Bhindi</button>
-          </div>
+          <div class="filter-pills" id="filterPills"><!-- derived from data --></div>
         </div>
 
         <!-- Table View -->
         <div class="table-responsive">
           <table class="data-table">
-            <thead>
-              <tr>
-                <th>State</th>
-                <th>District / Market</th>
-                <th>Commodity</th>
-                <th>Variety</th>
-                <th>Min Price</th>
-                <th>Max Price</th>
-                <th>Modal Price</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <!-- Dynamically populated by app.js -->
-            </tbody>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
           </table>
         </div>
       </div>
@@ -193,7 +128,8 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>DataPulse-India is an open-source data engine built with Python & GitHub Actions. Released under MIT License.</p>
+      <p>DataPulse-India is an open-source data engine built with Python &amp; GitHub Actions. Released under the MIT License.</p>
+    <p class="muted" id="provenance">&nbsp;</p>
     </footer>
 
   </div>

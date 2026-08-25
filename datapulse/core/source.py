@@ -67,6 +67,14 @@ class BaseSource(ABC):
     def __init__(self, config: SourceConfig) -> None:
         self.config = config
         self.log = get_logger(f"source.{self.name}")
+        # Non-fatal problems worth surfacing: incomplete data, dropped rows.
+        # The runner turns these into a `partial` status on the run report so
+        # degraded collection can never look like a clean success.
+        self.warnings: list[str] = []
+
+    def warn(self, message: str) -> None:
+        self.log.warning(message)
+        self.warnings.append(message)
 
     @abstractmethod
     def fetch(self, ctx: RunContext) -> Any:

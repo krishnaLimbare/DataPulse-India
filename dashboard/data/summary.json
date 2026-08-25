@@ -1,0 +1,558 @@
+{
+  "generated_at": "2026-08-25T12:33:51+00:00",
+  "datasets": [
+    {
+      "id": "mandi_prices",
+      "domain": "food_mandi",
+      "label": "Food & Mandi Prices",
+      "enabled": true,
+      "rows": 9140,
+      "days": 1,
+      "last_collected": "2026-08-25",
+      "chart": {
+        "labels": [
+          "Cardamom",
+          "Mentha Oil",
+          "Tube Flower",
+          "Black pepper",
+          "Makhana(Foxnut)",
+          "Kakada",
+          "Jasmine",
+          "Dry Grapes",
+          "Arecanut(Betelnut/Supari)",
+          "Sweet Saag",
+          "Beaten Rice",
+          "Akarkara"
+        ],
+        "values": [
+          272500.0,
+          133250.49,
+          80000.0,
+          61472.5,
+          60115.75,
+          45750.0,
+          43500.0,
+          42700.0,
+          38878.9,
+          29183.72,
+          27200.0,
+          23000.0
+        ]
+      },
+      "chart_title": "Average modal price by commodity (INR / quintal)",
+      "stats": {
+        "distinct": {
+          "state": 28,
+          "market": 1388
+        },
+        "top_by_count": {
+          "value": "Wheat",
+          "reports": 353
+        }
+      },
+      "preview": [
+        {
+          "state": "Odisha",
+          "district": "Sambalpur",
+          "market": "Sahaspur APMC",
+          "commodity": "Bhindi(Ladies Finger)",
+          "variety": "Other",
+          "min_price": 2600.0,
+          "max_price": 3000.0,
+          "modal_price": 2800.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Kozhikode(Calicut)",
+          "market": "Mukkom Market",
+          "commodity": "Ashgourd",
+          "variety": "Other",
+          "min_price": 3200.0,
+          "max_price": 3400.0,
+          "modal_price": 3300.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Kozhikode(Calicut)",
+          "market": "Mukkom Market",
+          "commodity": "Onion",
+          "variety": "Onion",
+          "min_price": 4800.0,
+          "max_price": 5200.0,
+          "modal_price": 5000.0
+        },
+        {
+          "state": "Gujarat",
+          "district": "Rajkot",
+          "market": "Jasdan APMC",
+          "commodity": "Jowar(Sorghum)",
+          "variety": "Jowar ( White)",
+          "min_price": 2750.0,
+          "max_price": 6100.0,
+          "modal_price": 5500.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Kottayam",
+          "market": "Kanjirappally Market",
+          "commodity": "Beetroot",
+          "variety": "Beetroot",
+          "min_price": 6000.0,
+          "max_price": 6500.0,
+          "modal_price": 6200.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Kottayam",
+          "market": "Kanjirappally Market",
+          "commodity": "Colacasia",
+          "variety": "Other",
+          "min_price": 7500.0,
+          "max_price": 8000.0,
+          "modal_price": 7800.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Kottayam",
+          "market": "Kanjirappally Market",
+          "commodity": "Drumstick",
+          "variety": "Drumstick",
+          "min_price": 5500.0,
+          "max_price": 6000.0,
+          "modal_price": 5800.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Bitter gourd",
+          "variety": "Bitter Gourd",
+          "min_price": 2600.0,
+          "max_price": 2600.0,
+          "modal_price": 2600.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Green Chilli",
+          "variety": "Green Chilly",
+          "min_price": 3500.0,
+          "max_price": 3500.0,
+          "modal_price": 3500.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Ladies Finger",
+          "variety": "Ladies Finger",
+          "min_price": 3100.0,
+          "max_price": 3100.0,
+          "modal_price": 3100.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Carrot",
+          "variety": "Carrot",
+          "min_price": 4000.0,
+          "max_price": 4000.0,
+          "modal_price": 4000.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Cluster beans",
+          "variety": "Cluster Beans",
+          "min_price": 2300.0,
+          "max_price": 2300.0,
+          "modal_price": 2300.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Hyderabad",
+          "market": "RYTHU BAZAR FALAKNUMA",
+          "commodity": "Colacasia",
+          "variety": "Colacasia",
+          "min_price": 2500.0,
+          "max_price": 2500.0,
+          "modal_price": 2500.0
+        },
+        {
+          "state": "Odisha",
+          "district": "Kalahandi",
+          "market": "Kesinga APMC",
+          "commodity": "Brinjal",
+          "variety": "Other",
+          "min_price": 3500.0,
+          "max_price": 3900.0,
+          "modal_price": 3700.0
+        },
+        {
+          "state": "Madhya Pradesh",
+          "district": "Sidhi",
+          "market": "Sidhi APMC",
+          "commodity": "Bengal Gram(Gram)(Whole)",
+          "variety": "Gram",
+          "min_price": 5000.0,
+          "max_price": 5000.0,
+          "modal_price": 5000.0
+        },
+        {
+          "state": "Madhya Pradesh",
+          "district": "Sidhi",
+          "market": "Sidhi APMC",
+          "commodity": "Flax seeds",
+          "variety": "Flax seeds",
+          "min_price": 7000.0,
+          "max_price": 7000.0,
+          "modal_price": 7000.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Water Melon",
+          "variety": "Water Melon",
+          "min_price": 1000.0,
+          "max_price": 2000.0,
+          "modal_price": 1500.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Capsicum",
+          "variety": "Capsicum",
+          "min_price": 1600.0,
+          "max_price": 4300.0,
+          "modal_price": 3500.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Maize",
+          "variety": "Local",
+          "min_price": 2480.0,
+          "max_price": 2700.0,
+          "modal_price": 2615.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Bottle gourd",
+          "variety": "Bottle Gourd",
+          "min_price": 600.0,
+          "max_price": 2100.0,
+          "modal_price": 1300.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Cabbage",
+          "variety": "Cabbage",
+          "min_price": 750.0,
+          "max_price": 2500.0,
+          "modal_price": 1500.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Ladies Finger",
+          "variety": "Ladies Finger",
+          "min_price": 800.0,
+          "max_price": 2400.0,
+          "modal_price": 1500.0
+        },
+        {
+          "state": "Karnataka",
+          "district": "Davangere",
+          "market": "Davangere APMC",
+          "commodity": "Beetroot",
+          "variety": "Beetroot",
+          "min_price": 800.0,
+          "max_price": 2600.0,
+          "modal_price": 2000.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Ranga Reddy",
+          "market": "Shankarapally APMC",
+          "commodity": "Tomato",
+          "variety": "Deshi",
+          "min_price": 1000.0,
+          "max_price": 1500.0,
+          "modal_price": 1250.0
+        },
+        {
+          "state": "Telangana",
+          "district": "Ranga Reddy",
+          "market": "Shankarapally APMC",
+          "commodity": "Green Chilli",
+          "variety": "Green Chilly",
+          "min_price": 4500.0,
+          "max_price": 5000.0,
+          "modal_price": 4750.0
+        },
+        {
+          "state": "Maharashtra",
+          "district": "Sangli",
+          "market": "Vita APMC",
+          "commodity": "Brinjal",
+          "variety": "Other",
+          "min_price": 2500.0,
+          "max_price": 3000.0,
+          "modal_price": 2800.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Thrippunithura Market",
+          "commodity": "Cucumbar(Kheera)",
+          "variety": "Cucumbar",
+          "min_price": 3000.0,
+          "max_price": 4500.0,
+          "modal_price": 3200.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Thrippunithura Market",
+          "commodity": "Cowpea(Veg)",
+          "variety": "Cowpea (Veg)",
+          "min_price": 12000.0,
+          "max_price": 13000.0,
+          "modal_price": 12200.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Thrippunithura Market",
+          "commodity": "Indian Beans(Seam)",
+          "variety": "Other",
+          "min_price": 10500.0,
+          "max_price": 12500.0,
+          "modal_price": 11000.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Thrippunithura Market",
+          "commodity": "Green Chilli",
+          "variety": "Green Chilly",
+          "min_price": 7500.0,
+          "max_price": 12000.0,
+          "modal_price": 8500.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Thrippunithura Market",
+          "commodity": "Cabbage",
+          "variety": "Cabbage",
+          "min_price": 6000.0,
+          "max_price": 7000.0,
+          "modal_price": 6200.0
+        },
+        {
+          "state": "Gujarat",
+          "district": "Surendranagar",
+          "market": "Dhragradhra APMC",
+          "commodity": "Mustard",
+          "variety": "Sarson(Black)",
+          "min_price": 7425.0,
+          "max_price": 8305.0,
+          "modal_price": 8000.0
+        },
+        {
+          "state": "Gujarat",
+          "district": "Surendranagar",
+          "market": "Dhragradhra APMC",
+          "commodity": "Wheat",
+          "variety": "Wheat",
+          "min_price": 2560.0,
+          "max_price": 2650.0,
+          "modal_price": 2600.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Bhatinda",
+          "market": "Bhagta Bhai Ka APMC",
+          "commodity": "Green Chilli",
+          "variety": "Other",
+          "min_price": 4100.0,
+          "max_price": 4100.0,
+          "modal_price": 4100.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Bhatinda",
+          "market": "Bhagta Bhai Ka APMC",
+          "commodity": "Onion",
+          "variety": "Other",
+          "min_price": 4800.0,
+          "max_price": 4800.0,
+          "modal_price": 4800.0
+        },
+        {
+          "state": "Gujarat",
+          "district": "Sabarkantha",
+          "market": "Himatnagar APMC",
+          "commodity": "Soyabean",
+          "variety": "Yellow",
+          "min_price": 5400.0,
+          "max_price": 6000.0,
+          "modal_price": 5900.0
+        },
+        {
+          "state": "Gujarat",
+          "district": "Sabarkantha",
+          "market": "Himatnagar APMC",
+          "commodity": "Guar Seed(Cluster Beans Seed)",
+          "variety": "Whole",
+          "min_price": 5205.0,
+          "max_price": 5625.0,
+          "modal_price": 5500.0
+        },
+        {
+          "state": "Keralam",
+          "district": "Ernakulam",
+          "market": "Puthenvelikkara  VFPCK Market",
+          "commodity": "Banana - Green",
+          "variety": "Banana - Green",
+          "min_price": 6000.0,
+          "max_price": 6200.0,
+          "modal_price": 6100.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Fazilka",
+          "market": "Fazilka APMC",
+          "commodity": "Garlic",
+          "variety": "Garlic",
+          "min_price": 12000.0,
+          "max_price": 12000.0,
+          "modal_price": 12000.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Fazilka",
+          "market": "Fazilka APMC",
+          "commodity": "Bhindi(Ladies Finger)",
+          "variety": "Bhindi",
+          "min_price": 4000.0,
+          "max_price": 4000.0,
+          "modal_price": 4000.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Fazilka",
+          "market": "Fazilka APMC",
+          "commodity": "Banana",
+          "variety": "Banana - Ripe",
+          "min_price": 4000.0,
+          "max_price": 4000.0,
+          "modal_price": 4000.0
+        },
+        {
+          "state": "Punjab",
+          "district": "Fazilka",
+          "market": "Fazilka APMC",
+          "commodity": "Guava",
+          "variety": "Guava",
+          "min_price": 3500.0,
+          "max_price": 3500.0,
+          "modal_price": 3500.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Pomegranate",
+          "variety": "Pomogranate",
+          "min_price": 7000.0,
+          "max_price": 9400.0,
+          "modal_price": 8000.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Cauliflower",
+          "variety": "Cauliflower",
+          "min_price": 4500.0,
+          "max_price": 5800.0,
+          "modal_price": 5200.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Colacasia",
+          "variety": "Other",
+          "min_price": 1500.0,
+          "max_price": 2500.0,
+          "modal_price": 2200.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Bitter gourd",
+          "variety": "Bitter Gourd",
+          "min_price": 1000.0,
+          "max_price": 2500.0,
+          "modal_price": 1800.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Raddish",
+          "variety": "Raddish",
+          "min_price": 1800.0,
+          "max_price": 2200.0,
+          "modal_price": 2000.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Kurukshetra",
+          "market": "Shahabad APMC",
+          "commodity": "Tomato",
+          "variety": "Tomato",
+          "min_price": 1200.0,
+          "max_price": 2000.0,
+          "modal_price": 1800.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Panipat",
+          "market": "Madlauda APMC",
+          "commodity": "Tomato",
+          "variety": "Tomato",
+          "min_price": 2000.0,
+          "max_price": 3000.0,
+          "modal_price": 2500.0
+        },
+        {
+          "state": "Haryana",
+          "district": "Rewari",
+          "market": "Kosli APMC",
+          "commodity": "Cabbage",
+          "variety": "Other",
+          "min_price": 2500.0,
+          "max_price": 2500.0,
+          "modal_price": 2500.0
+        }
+      ],
+      "preview_note": "Showing 50 of 9,140 rows collected on 2026-08-25."
+    }
+  ]
+}

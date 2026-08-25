@@ -36,6 +36,13 @@ def redact(value: Any, key: str = "") -> Any:
     return value
 
 
+class ScrubbingFormatter(logging.Formatter):
+    """Plain-text formatter that masks credentials before anything is printed."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return scrub(super().format(record))
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
@@ -59,11 +66,16 @@ def setup_logging(level: str = "INFO", json_logs: bool | None = None) -> None:
     handler.setFormatter(
         JsonFormatter()
         if json_logs
-        else logging.Formatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s", "%H:%M:%S")
+        else ScrubbingFormatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s", "%H:%M:%S")
     )
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level.upper())
+
+    # httpx logs every request URL at INFO, and credentials ride in the query
+    # string. Formatters scrub them, but there is no reason to emit them at all.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:

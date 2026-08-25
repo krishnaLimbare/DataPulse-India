@@ -460,3 +460,17 @@ body {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
 }
+
+/* --- SVG chart (drawn by app.js; no chart library) --------------------- */
+#analyticsChart svg { width: 100%; height: auto; display: block; }
+#analyticsChart .grid { stroke: currentColor; opacity: .12; stroke-width: 1; }
+#analyticsChart .axis-line { stroke: currentColor; opacity: .3; stroke-width: 1; }
+#analyticsChart .axis { fill: currentColor; opacity: .65; font-size: 12px; }
+#analyticsChart .tick { font-size: 11px; }
+#analyticsChart .bar { fill: #16a34a; transition: opacity .15s ease; }
+#analyticsChart .bar:hover { opacity: .75; }
+.empty-state { padding: 3rem 1rem; text-align: center; }
+
+/* A dataset with no collected rows is visibly inactive, never faked as live. */
+.tab-btn.is-empty { opacity: .55; }
+.tab-btn.is-empty .tab-tag { font-style: italic; }

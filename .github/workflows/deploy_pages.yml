@@ -2,7 +2,7 @@ name: Deploy Dashboard to GitHub Pages
 
 on:
   push:
-    branches: ["main", "Initial_Feature_20260825"]
+    branches: ["develop", "main"]
   workflow_dispatch:
 
 permissions:
