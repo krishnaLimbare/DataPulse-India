@@ -3,15 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DataPulse-India | Automated Open-Data Engine</title>
+  <title>DataPulse India | National Economic & Commodity Data Hub</title>
   
-  <!-- Modern Google Font & Icons -->
+  <!-- Inter & Plus Jakarta Sans typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Chart.js for clean visual charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -20,157 +17,196 @@
   <!-- Top Navigation / Header -->
   <header class="navbar">
     <div class="brand">
-      <div class="logo-icon">⚡</div>
+      <div class="logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      </div>
       <div class="brand-text">
-        <span class="title">DataPulse-India</span>
-        <span class="subtitle">Automated Multi-Dataset Open Engine</span>
+        <span class="title">DataPulse India</span>
+        <span class="subtitle">Open National Economic Indicators</span>
       </div>
     </div>
     
     <div class="header-actions">
-      <div class="status-badge">
-        <span class="dot"></span>
+      <div class="status-indicator">
+        <span class="pulse-dot"></span>
         <span class="status-text" id="pipelineStatus">Loading&hellip;</span>
       </div>
-      <a href="https://github.com/KrishnaLimbare/DataPulse-India" target="_blank" class="github-btn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        GitHub Repository
+      <a href="https://github.com/KrishnaLimbare/DataPulse-India" target="_blank" class="github-btn" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub Repository</span>
       </a>
     </div>
   </header>
 
   <div class="container">
     
-    <!-- Hero / Summary Banner -->
-    <section class="hero">
-      <div class="hero-content">
-        <h1>What do food prices look like across India today?</h1>
-        <p id="heroSub">Every night a robot reads the Government of India&rsquo;s wholesale market
-        (<em>mandi</em>) price feed, checks it, and saves a permanent copy here. The numbers below
-        are the latest ones it collected.</p>
+    <!-- Hero Header -->
+    <section class="hero-section">
+      <div class="hero-main">
+        <h1>Wholesale Commodity & Economic Data Intelligence</h1>
+        <p id="heroSub" class="hero-desc">An automated data engine collecting daily wholesale commodity prices from official government market feeds across India, schema-validated and date-partitioned into open Parquet archives.</p>
+      </div>
+      
+      <!-- Pipeline Steps Ribbon -->
+      <div class="pipeline-ribbon" aria-label="Pipeline workflow">
+        <div class="ribbon-step">
+          <span class="step-badge">01</span>
+          <div class="step-body">
+            <span class="step-title">Automated Ingestion</span>
+            <span class="step-desc">Nightly cron execution across 29 states</span>
+          </div>
+        </div>
+        <div class="ribbon-step">
+          <span class="step-badge">02</span>
+          <div class="step-body">
+            <span class="step-title">Schema Validation</span>
+            <span class="step-desc">Type safety, unit checks & deduplication</span>
+          </div>
+        </div>
+        <div class="ribbon-step">
+          <span class="step-badge">03</span>
+          <div class="step-body">
+            <span class="step-title">Immutable Storage</span>
+            <span class="step-desc">Date-partitioned Parquet time series</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Plain-language orientation: three steps, no jargon. -->
-    <section class="how-it-works" aria-label="How this works">
-      <div class="step"><span class="step-num">1</span>
-        <p><strong>Collect</strong><br>A scheduled job downloads today&rsquo;s prices from every
-        state, automatically.</p></div>
-      <div class="step"><span class="step-num">2</span>
-        <p><strong>Check</strong><br>Every row is validated and duplicates removed before anything
-        is saved.</p></div>
-      <div class="step"><span class="step-num">3</span>
-        <p><strong>Keep</strong><br>Each day is stored forever, so prices can be compared over
-        time.</p></div>
-    </section>
-
-    <!-- Main Domain Navigation Tabs (Baby-simple UX) -->
-    <nav class="domain-tabs" id="domainTabs" aria-label="Dataset Domains">
-      <!-- Rendered from data/summary.json by app.js -->
-    </nav>
+    <!-- Domain Segmented Selector -->
+    <div class="selector-wrapper">
+      <label class="selector-label">DATASET DOMAIN</label>
+      <nav class="domain-tabs" id="domainTabs" aria-label="Dataset Domains">
+        <!-- Rendered dynamically from data/summary.json by app.js -->
+      </nav>
+    </div>
 
     <!-- KPI Summary Metrics Grid -->
     <section class="kpi-grid" id="kpiGrid">
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Prices Collected</span><span class="kpi-icon">&#128230;</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-title">Records Collected</span>
+          <svg class="kpi-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8z"/><path d="M3 3v18h18"/><path d="m18 9-5 5-4-4-3 3"/></svg>
+        </div>
         <div class="kpi-value" id="kpiTotalRows">&mdash;</div>
         <div class="kpi-subtext" id="kpiTotalRowsSub">&nbsp;</div>
       </div>
+      
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Markets</span><span class="kpi-icon">&#128205;</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-title">Active Markets</span>
+          <svg class="kpi-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
         <div class="kpi-value" id="kpiMarkets">&mdash;</div>
         <div class="kpi-subtext" id="kpiMarketsSub">&nbsp;</div>
       </div>
+      
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Most Common Crop</span><span class="kpi-icon">&#128200;</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-title">Primary Commodity</span>
+          <svg class="kpi-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5"/><path d="M12 12v9"/><path d="M12 12L4 7.5"/></svg>
+        </div>
         <div class="kpi-value" id="kpiTopCommodity">&mdash;</div>
         <div class="kpi-subtext" id="kpiTopCommoditySub">&nbsp;</div>
       </div>
+      
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Prices From</span><span class="kpi-icon">&#9889;</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-title">Collection Feed</span>
+          <svg class="kpi-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
         <div class="kpi-value" id="kpiStatus">&mdash;</div>
         <div class="kpi-subtext" id="kpiStatusSub">&nbsp;</div>
       </div>
     </section>
 
-    <!-- Main Content Panel -->
+    <!-- Main Content Terminal Panel -->
     <main id="mainPanel" class="main-panel">
       
-      <!-- Visualization Header & Controls -->
+      <!-- Panel Header & Action Tools -->
       <div class="panel-header">
-        <div>
-          <h2 id="panelTitle">🌾 Food & Mandi Price Index</h2>
-          <p id="panelDescription" class="muted">Live commodity prices collected from agricultural wholesale markets across India (data.gov.in).</p>
+        <div class="panel-heading">
+          <h2 id="panelTitle">Food & Mandi Price Index</h2>
+          <p id="panelDescription" class="panel-sub">Live commodity prices collected from agricultural wholesale markets across India (data.gov.in).</p>
         </div>
         <div class="panel-actions">
-          <a id="downloadCsv" class="secondary-btn" download
-             title="Opens in Excel or Google Sheets">Download today&rsquo;s prices (CSV)</a>
+          <a id="downloadCsv" class="export-btn" download title="Export raw dataset as CSV">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download CSV</span>
+          </a>
         </div>
       </div>
 
-      <!-- Interactive Chart Section -->
-      <div class="chart-card">
+      <!-- Chart / Visual Analytics Container -->
+      <div class="chart-section">
         <div class="chart-header">
-          <h3 id="chartTitle">Loading&hellip;</h3>
-          <span class="badge" id="chartBadge">&nbsp;</span>
+          <div class="chart-title-group">
+            <h3 id="chartTitle">Commodity Pricing Index</h3>
+            <span class="count-badge" id="chartBadge">&nbsp;</span>
+          </div>
         </div>
-        <div class="chart-container">
+        <div class="chart-canvas-wrapper">
           <div id="analyticsChart"></div>
         </div>
       </div>
 
-      <!-- Live Search & Data Explorer Table -->
-      <div class="table-card">
-        <div class="table-toolbar">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search a crop — try Potato, Onion or Tomato">
+      <!-- Explorer Data Grid Toolbar -->
+      <div class="explorer-card">
+        <div class="grid-toolbar">
+          <div class="search-field">
+            <svg class="search-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="searchInput" placeholder="Filter by commodity, market or state (e.g. Potato, Tamil Nadu)...">
+            <kbd class="hotkey-hint">/</kbd>
           </div>
           
-          <div class="table-filters">
-            <label class="sr-only" for="stateFilter">Filter by state</label>
-            <select id="stateFilter" class="state-select">
-              <option value="all">All of India</option>
+          <div class="toolbar-controls">
+            <label for="stateFilter" class="control-label">State Filter:</label>
+            <select id="stateFilter" class="custom-select">
+              <option value="all">All States & UTs</option>
             </select>
           </div>
         </div>
 
         <!-- Table View -->
-        <div class="table-responsive">
-          <table class="data-table">
+        <div class="table-scroll-container">
+          <table class="financial-table">
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
-          
           </table>
-          <p class="muted table-note" id="tableNote"></p>
+          <p class="table-footnote" id="tableNote"></p>
         </div>
+      </div>
+
+      <!-- Provenance & Data Contract Card -->
+      <div class="provenance-card" id="provenanceCard">
+        <div class="prov-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <h4>Data Provenance & Open License</h4>
+        </div>
+        <div class="prov-grid">
+          <div class="prov-item">
+            <span class="prov-label">Primary Source</span>
+            <span class="prov-val" id="provSource">&mdash;</span>
+          </div>
+          <div class="prov-item">
+            <span class="prov-label">Publisher</span>
+            <span class="prov-val" id="provPublisher">&mdash;</span>
+          </div>
+          <div class="prov-item">
+            <span class="prov-label">License</span>
+            <span class="prov-val" id="provLicense">&mdash;</span>
+          </div>
+        </div>
+        <p class="prov-footnote" id="provenance">&nbsp;</p>
       </div>
 
     </main>
 
     <!-- Footer -->
-    <section class="provenance-card" id="provenanceCard" aria-label="About this data">
-      <h3>About this data</h3>
-      <dl class="prov-grid">
-        <div><dt>Source</dt><dd id="provSource">&mdash;</dd></div>
-        <div><dt>Published by</dt><dd id="provPublisher">&mdash;</dd></div>
-        <div><dt>Licence</dt><dd id="provLicense">&mdash;</dd></div>
-        <div><dt>Updated</dt><dd id="provCadence">&mdash;</dd></div>
-        <div class="prov-wide"><dt>What the prices mean</dt><dd id="provUnits">&mdash;</dd></div>
-      </dl>
-      <p class="prov-limits-title">Known limits</p>
-      <ul id="provNotes" class="prov-notes"></ul>
-      <p class="muted prov-raw">
-        Prefer the raw archive?
-        <a id="rawLink" href="https://github.com/krishnaLimbare/DataPulse-India/tree/main/datasets"
-           target="_blank" rel="noopener">Browse the daily Parquet files on GitHub</a>
-        &mdash; every day since collection began, about 15&times; smaller than CSV.
-      </p>
-    </section>
-
     <footer class="footer">
-      <p>DataPulse-India is an automated data engine built with Python &amp; GitHub Actions.</p>
-    <p class="muted" id="provenance">&nbsp;</p>
+      <div class="footer-inner">
+        <p>DataPulse India • Automated Multi-Dataset Data Engine • Released under the MIT License.</p>
+      </div>
     </footer>
 
   </div>

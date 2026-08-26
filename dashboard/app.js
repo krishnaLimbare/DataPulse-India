@@ -349,6 +349,15 @@ if (search) {
     state.query = e.target.value;
     if (state.active) renderTable(state.active);
   });
+  
+  // Press / to focus search bar
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== search) {
+      e.preventDefault();
+      search.focus();
+    }
+  });
 }
 
 init();
+
