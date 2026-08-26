@@ -36,6 +36,11 @@ log = get_logger(__name__)
 TOP_N = 12
 PREVIEW_ROWS = 50
 
+# Parquet is 15x smaller but unopenable for most visitors -- Excel and Sheets
+# cannot read it. The archive stays parquet; the dashboard also publishes the
+# latest day as CSV so anyone can actually use it.
+CSV_NAME = "{source}_latest.csv"
+
 
 def _series(df: pd.DataFrame, dimension: str, metric: str) -> dict[str, list]:
     """Average `metric` per `dimension`, biggest first, capped at TOP_N."""
@@ -48,6 +53,69 @@ def _series(df: pd.DataFrame, dimension: str, metric: str) -> dict[str, list]:
     return {
         "labels": [str(i) for i in grouped.index],
         "values": [round(float(v), 2) for v in grouped.to_numpy()],
+    }
+
+
+def _aggregate(df: pd.DataFrame, keys: list[str], metric: str, count: str) -> list[dict[str, Any]]:
+    """Cheapest / typical / priciest per group, with a spread multiple.
+
+    `spread` is what makes the table worth reading: a crop selling at 5x the
+    price in one state versus another is a real signal about supply, transport
+    or a local glut.
+    """
+    values = pd.to_numeric(df[metric], errors="coerce")
+    frame = df.assign(**{metric: values}).dropna(subset=[metric])
+    if frame.empty:
+        return []
+
+    agg: dict[str, Any] = {
+        "low": (metric, "min"),
+        "typical": (metric, "median"),
+        "high": (metric, "max"),
+    }
+    if count in frame.columns:
+        agg["places"] = (count, "nunique")
+
+    grouped = frame.groupby(keys, dropna=True).agg(**agg).reset_index()
+    grouped["spread"] = (grouped["high"] / grouped["low"].where(grouped["low"] > 0)).round(1)
+
+    records = []
+    for row in grouped.to_dict(orient="records"):
+        clean = {}
+        for k, v in row.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                clean[k] = None if pd.isna(v) else round(float(v), 2)
+            else:
+                clean[k] = None if pd.isna(v) else str(v)
+        records.append(clean)
+    return sorted(records, key=lambda r: r.get(keys[0]) or "")
+
+
+def _build_table(df: pd.DataFrame, spec: dict[str, Any]) -> dict[str, Any]:
+    """Two views of the same data: all-India, and broken down per facet.
+
+    Both are computed here rather than folded together in the browser, because
+    a median of medians is not a median -- the all-India typical price has to
+    come from the underlying rows.
+    """
+    table = spec.get("table") or {}
+    dimension, metric = table.get("dimension"), table.get("metric")
+    if not dimension or not metric or dimension not in df.columns:
+        return {"dimension": "", "facet": "", "overall": [], "faceted": [], "facets": []}
+
+    facet = table.get("facet")
+    count = table.get("count", "")
+    faceted = (
+        _aggregate(df, [dimension, facet], metric, count)
+        if facet and facet in df.columns
+        else []
+    )
+    return {
+        "dimension": dimension,
+        "facet": facet or "",
+        "overall": _aggregate(df, [dimension], metric, count),
+        "faceted": faceted,
+        "facets": sorted({r[facet] for r in faceted if r.get(facet)}) if faceted else [],
     }
 
 
@@ -77,7 +145,8 @@ def _preview(df: pd.DataFrame, spec: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def build_summary(settings: Settings) -> dict[str, Any]:
+def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[str, Any]:
+    """Aggregate the archive. With `export_dir`, also write the latest day as CSV."""
     storage = build_storage(settings.storage)
     datasets: list[dict[str, Any]] = []
 
@@ -99,7 +168,11 @@ def build_summary(settings: Settings) -> dict[str, Any]:
             "stats": {"distinct": {}},
             "flagged_rows": 0,
             "preview": [],
+            "table": {"dimension": "", "facet": "", "overall": [], "faceted": [], "facets": []},
             "preview_note": "",
+            "provenance": cfg.options.get("provenance", {}),
+            "download": None,
+            "download_rows": 0,
         }
 
         df = storage.read_all(cls.domain, name)
@@ -128,7 +201,18 @@ def build_summary(settings: Settings) -> dict[str, Any]:
             if (dim := spec.get("dimension")) and (met := spec.get("metric")):
                 entry["chart"] = _series(clean, dim, met)
             entry["stats"] = _stats(clean, spec)
+            entry["table"] = _build_table(clean, spec)
             entry["preview"] = _preview(clean, spec)
+            if export_dir is not None:
+                # Every row is exported, flagged ones included, so nothing is
+                # hidden -- the flag column lets people filter for themselves.
+                export_dir.mkdir(parents=True, exist_ok=True)
+                csv_path = export_dir / CSV_NAME.format(source=name)
+                latest.to_csv(csv_path, index=False)
+                entry["download"] = csv_path.name
+                entry["download_rows"] = len(latest)
+                log.info("wrote %s (%d rows)", csv_path, len(latest))
+
             if entry["preview"]:
                 note = (
                     f"Showing {len(entry['preview'])} of {len(latest):,} prices "
@@ -152,7 +236,7 @@ def build_summary(settings: Settings) -> dict[str, Any]:
 def write_summary(settings: Settings, path: Path) -> Path:
     import json
 
-    summary = build_summary(settings)
+    summary = build_summary(settings, export_dir=path.parent)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     live = [d["id"] for d in summary["datasets"] if d["rows"]]
