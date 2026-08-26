@@ -678,3 +678,63 @@ svg .val {
   padding: 2rem;
   font-size: 0.85rem;
 }
+
+/* ============================================================
+   Restored after the redesign: provenance detail, the plain-language
+   explainer, and the state filter. Written against the new tokens.
+   ============================================================ */
+
+/* State filter -- was rendering as an unstyled browser control on dark. */
+.state-select {
+  background: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+  max-width: 100%;
+}
+.state-select:hover { background: var(--bg-surface-hover); }
+.state-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Provenance: the limits are the point, not a footnote. */
+.prov-item-wide { grid-column: 1 / -1; }
+.prov-limits { margin-top: 1.25rem; }
+.prov-notes { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.prov-notes li {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 0.3rem;
+}
+
+/* How it works -- three steps, plain words. */
+.how-it-works {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.how-it-works .step {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem 1.15rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+.how-it-works .step p { margin: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.how-it-works .step strong { color: var(--text-main); font-size: 0.95rem; }
+.how-it-works .step span { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+.step-num {
+  flex: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 0.75rem; font-weight: 700;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
