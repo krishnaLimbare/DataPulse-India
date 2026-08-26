@@ -180,6 +180,41 @@
         </div>
       </div>
 
+
+    <!-- Three ways to get the data, labelled by who each one is for. The CSV
+         covers one day on purpose: the archive as CSV would be ~126 MB at 90
+         days, rebuilt on every deploy. -->
+    <section class="getdata-card" aria-label="Get the data">
+      <h3>Get the data</h3>
+
+      <div class="getdata-grid">
+        <div class="getdata-item">
+          <span class="getdata-when">Just today</span>
+          <p>Use the <strong>Download CSV</strong> button above the table. Opens straight
+          in Excel, Numbers or Google Sheets.</p>
+        </div>
+
+        <div class="getdata-item">
+          <span class="getdata-when">Every day collected so far</span>
+          <p>Download or clone
+          <a href="https://github.com/krishnaLimbare/DataPulse-India" target="_blank" rel="noopener">the
+          repository</a>, then read the whole archive in three lines:</p>
+          <pre class="getdata-code"><code>import pandas as pd, glob
+df = pd.concat(map(pd.read_parquet, glob.glob("datasets/**/*.parquet", recursive=True)))
+df.to_csv("all_prices.csv", index=False)   # only if you want CSV</code></pre>
+          <p class="getdata-tip">Rows that failed a quality check are included. For clean
+          rows only, filter <code>df[df.quality_flag == ""]</code>.</p>
+        </div>
+
+        <div class="getdata-item">
+          <span class="getdata-when">What is a Parquet file?</span>
+          <p>A compressed table format read by Python, R, DuckDB and Excel&rsquo;s Power Query
+          &mdash; about 15&times; smaller than the same data as CSV, which is why the archive is
+          stored that way.</p>
+        </div>
+      </div>
+    </section>
+
       <!-- Provenance & Data Contract Card -->
       <div class="provenance-card" id="provenanceCard">
         <div class="prov-header">

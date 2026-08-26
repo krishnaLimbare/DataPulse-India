@@ -151,7 +151,11 @@ function renderDownload(dataset) {
   }
   link.style.display = "";
   link.href = `data/${dataset.download}`;
-  link.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
+  // Write into the label span if the markup has one -- setting textContent on
+  // the link itself would wipe the icon sitting beside it.
+  const label = link.querySelector("span") || link;
+  label.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
+  link.title = `${fmt(dataset.download_rows)} rows collected on ${niceDate(dataset.last_collected)}`;
 }
 
 function renderProvenance(dataset) {
