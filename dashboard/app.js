@@ -130,7 +130,7 @@ function select(dataset) {
     return;
   }
 
-  setText("panelDescription", dataset.preview_note);
+  setText("panelDescription", dataset.headline_note);
   setText("chartBadge", `${dataset.chart.labels.length} most expensive`);
   renderDownload(dataset);
   renderProvenance(dataset);
@@ -167,7 +167,6 @@ function renderProvenance(dataset) {
 
   setHtml("provSource", p.source_name ? link(p.source_name, p.source_url) : "—");
   setText("provPublisher", p.publisher || "—");
-  setHtml("provLicense", p.license ? link(p.license, p.license_url) : "—");
   setText("provCadence", p.cadence || "—");
   setText("provUnits", p.units || "—");
 

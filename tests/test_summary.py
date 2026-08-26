@@ -20,7 +20,6 @@ def _settings(tmp_path):
                         "metric": "modal_price",
                         "distinct_counts": ["state", "market"],
                         "top_by_count": "commodity",
-                        "preview_columns": ["state", "commodity", "modal_price"],
                     }
                 },
             )
@@ -32,8 +31,8 @@ def test_summary_reports_zero_rows_when_nothing_collected(tmp_path):
     out = build_summary(_settings(tmp_path))
     entry = out["datasets"][0]
     assert entry["rows"] == 0
-    assert entry["preview"] == []
     assert entry["chart"] == {"labels": [], "values": []}
+    assert entry["headline_note"] == ""
 
 
 def test_summary_aggregates_real_values(tmp_path):
@@ -60,7 +59,6 @@ def test_summary_aggregates_real_values(tmp_path):
     assert entry["chart"]["values"] == [5000.0, 150.0]
     assert entry["stats"]["distinct"] == {"state": 2, "market": 3}
     assert entry["stats"]["top_by_count"] == {"value": "Tomato", "reports": 2}
-    assert len(entry["preview"]) == 3
 
 
 def test_csv_export_includes_flagged_rows_with_their_flag(tmp_path):

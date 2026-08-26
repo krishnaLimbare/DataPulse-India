@@ -35,8 +35,6 @@ sources:
         source_name: "Variety-wise Daily Market Prices, data.gov.in"
         source_url: "https://www.data.gov.in/resource/variety-wise-daily-market-prices-data-commodity"
         publisher: "Ministry of Agriculture & Farmers Welfare, Government of India"
-        license: "Government Open Data License - India (GODL)"
-        license_url: "https://www.data.gov.in/government-open-data-license-india"
         units: "Wholesale prices in INR per quintal (100 kg) - not retail prices."
         cadence: "Collected daily at about 01:00 IST."
         notes:
@@ -58,7 +56,6 @@ sources:
         metric: modal_price
         distinct_counts: [state, market]
         top_by_count: commodity
-        preview_columns: [state, district, market, commodity, variety, min_price, max_price, modal_price]
 
   # --- planned, add the module then flip enabled ---------------------
   # used_cars:
