@@ -495,3 +495,22 @@ body {
   display: grid; place-items: center; font-size: .8rem; font-weight: 700;
   background: #16a34a; color: #fff;
 }
+
+/* --- chart container sizing ------------------------------------------
+   The original markup used a fixed-height <canvas>; the SVG chart grows with
+   the number of rows instead, so the container must size to its content or the
+   chart spills over the search box and table below it. */
+.chart-container {
+  height: auto;
+  min-height: 0;
+  overflow-x: auto;   /* narrow screens scroll the chart, never the page */
+}
+
+/* Long titles and the badge must wrap rather than push each other out. */
+.chart-header { flex-wrap: wrap; gap: .5rem; }
+.chart-header h3 { min-width: 0; flex: 1 1 auto; }
+.chart-header .badge { flex: none; white-space: nowrap; }
+
+/* Belt and braces: never let the chart paint outside its card. */
+.chart-card { overflow: hidden; }
+#analyticsChart svg { max-width: 100%; }
