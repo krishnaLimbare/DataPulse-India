@@ -105,15 +105,59 @@ function select(dataset) {
     $("tableBody").innerHTML = "";
     $("filterPills").innerHTML = "";
     setKpis(null);
+    renderDownload(dataset);
+    renderProvenance(dataset);
     return;
   }
 
   $("panelDescription").textContent = dataset.preview_note;
   $("chartBadge").textContent = `${dataset.chart.labels.length} most expensive`;
+  renderDownload(dataset);
+  renderProvenance(dataset);
   setKpis(dataset);
   drawChart(dataset.chart);
   renderPills(dataset);
   renderTable(dataset);
+}
+
+// The CSV is generated at deploy time next to summary.json. If a dataset has
+// none yet, hide the button rather than offering a broken download.
+function renderDownload(dataset) {
+  const link = $("downloadCsv");
+  if (!link) return;
+  if (!dataset.download) {
+    link.style.display = "none";
+    return;
+  }
+  link.style.display = "";
+  link.href = `data/${dataset.download}`;
+  link.textContent = `Download these ${fmt(dataset.download_rows)} prices (CSV)`;
+}
+
+function renderProvenance(dataset) {
+  const p = dataset.provenance || {};
+  const card = $("provenanceCard");
+  if (!card) return;
+  // No provenance declared means we cannot say where it came from -- so say
+  // nothing rather than implying it is unsourced.
+  card.style.display = Object.keys(p).length ? "" : "none";
+
+  const link = (text, href) =>
+    href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
+
+  $("provSource").innerHTML = p.source_name ? link(p.source_name, p.source_url) : "—";
+  $("provPublisher").textContent = p.publisher || "—";
+  $("provLicense").innerHTML = p.license ? link(p.license, p.license_url) : "—";
+  $("provCadence").textContent = p.cadence || "—";
+  $("provUnits").textContent = p.units || "—";
+
+  const notes = $("provNotes");
+  notes.innerHTML = "";
+  (p.notes || []).forEach((n) => {
+    const li = document.createElement("li");
+    li.textContent = n;
+    notes.append(li);
+  });
 }
 
 function setKpis(d) {

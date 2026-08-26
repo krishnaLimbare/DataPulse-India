@@ -36,6 +36,11 @@ log = get_logger(__name__)
 TOP_N = 12
 PREVIEW_ROWS = 50
 
+# Parquet is 15x smaller but unopenable for most visitors -- Excel and Sheets
+# cannot read it. The archive stays parquet; the dashboard also publishes the
+# latest day as CSV so anyone can actually use it.
+CSV_NAME = "{source}_latest.csv"
+
 
 def _series(df: pd.DataFrame, dimension: str, metric: str) -> dict[str, list]:
     """Average `metric` per `dimension`, biggest first, capped at TOP_N."""
@@ -77,7 +82,8 @@ def _preview(df: pd.DataFrame, spec: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def build_summary(settings: Settings) -> dict[str, Any]:
+def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[str, Any]:
+    """Aggregate the archive. With `export_dir`, also write the latest day as CSV."""
     storage = build_storage(settings.storage)
     datasets: list[dict[str, Any]] = []
 
@@ -100,6 +106,9 @@ def build_summary(settings: Settings) -> dict[str, Any]:
             "flagged_rows": 0,
             "preview": [],
             "preview_note": "",
+            "provenance": cfg.options.get("provenance", {}),
+            "download": None,
+            "download_rows": 0,
         }
 
         df = storage.read_all(cls.domain, name)
@@ -129,6 +138,16 @@ def build_summary(settings: Settings) -> dict[str, Any]:
                 entry["chart"] = _series(clean, dim, met)
             entry["stats"] = _stats(clean, spec)
             entry["preview"] = _preview(clean, spec)
+            if export_dir is not None:
+                # Every row is exported, flagged ones included, so nothing is
+                # hidden -- the flag column lets people filter for themselves.
+                export_dir.mkdir(parents=True, exist_ok=True)
+                csv_path = export_dir / CSV_NAME.format(source=name)
+                latest.to_csv(csv_path, index=False)
+                entry["download"] = csv_path.name
+                entry["download_rows"] = len(latest)
+                log.info("wrote %s (%d rows)", csv_path, len(latest))
+
             if entry["preview"]:
                 note = (
                     f"Showing {len(entry['preview'])} of {len(latest):,} prices "
@@ -152,7 +171,7 @@ def build_summary(settings: Settings) -> dict[str, Any]:
 def write_summary(settings: Settings, path: Path) -> Path:
     import json
 
-    summary = build_summary(settings)
+    summary = build_summary(settings, export_dir=path.parent)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     live = [d["id"] for d in summary["datasets"] if d["rows"]]

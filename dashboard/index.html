@@ -103,8 +103,8 @@
           <p id="panelDescription" class="muted">Live commodity prices collected from agricultural wholesale markets across India (data.gov.in).</p>
         </div>
         <div class="panel-actions">
-          <a id="dataLink" title="Download the raw daily files" href="https://github.com/krishnaLimbare/DataPulse-India/tree/develop/datasets"
-             target="_blank" rel="noopener" class="secondary-btn">Browse raw parquet on GitHub</a>
+          <a id="downloadCsv" class="secondary-btn" download
+             title="Opens in Excel or Google Sheets">Download today&rsquo;s prices (CSV)</a>
         </div>
       </div>
 
@@ -142,6 +142,25 @@
     </main>
 
     <!-- Footer -->
+    <section class="provenance-card" id="provenanceCard" aria-label="About this data">
+      <h3>About this data</h3>
+      <dl class="prov-grid">
+        <div><dt>Source</dt><dd id="provSource">&mdash;</dd></div>
+        <div><dt>Published by</dt><dd id="provPublisher">&mdash;</dd></div>
+        <div><dt>Licence</dt><dd id="provLicense">&mdash;</dd></div>
+        <div><dt>Updated</dt><dd id="provCadence">&mdash;</dd></div>
+        <div class="prov-wide"><dt>What the prices mean</dt><dd id="provUnits">&mdash;</dd></div>
+      </dl>
+      <p class="prov-limits-title">Known limits</p>
+      <ul id="provNotes" class="prov-notes"></ul>
+      <p class="muted prov-raw">
+        Prefer the raw archive?
+        <a id="rawLink" href="https://github.com/krishnaLimbare/DataPulse-India/tree/main/datasets"
+           target="_blank" rel="noopener">Browse the daily Parquet files on GitHub</a>
+        &mdash; every day since collection began, about 15&times; smaller than CSV.
+      </p>
+    </section>
+
     <footer class="footer">
       <p>DataPulse-India is an open-source data engine built with Python &amp; GitHub Actions. Released under the MIT License.</p>
     <p class="muted" id="provenance">&nbsp;</p>

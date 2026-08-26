@@ -32,3 +32,6 @@ datasets/_scratch/
 # an over-broad `git add -A`.
 /Dockerfile
 /docker-compose.yml
+
+# Generated at deploy time from the committed parquet.
+dashboard/data/*.csv

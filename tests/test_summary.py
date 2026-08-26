@@ -61,3 +61,49 @@ def test_summary_aggregates_real_values(tmp_path):
     assert entry["stats"]["distinct"] == {"state": 2, "market": 3}
     assert entry["stats"]["top_by_count"] == {"value": "Tomato", "reports": 2}
     assert len(entry["preview"]) == 3
+
+
+def test_csv_export_includes_flagged_rows_with_their_flag(tmp_path):
+    """Export everything and let people filter -- hiding rows hides the evidence."""
+    df = pd.DataFrame(
+        {
+            "collected_date": [pd.Timestamp("2026-08-25")] * 2,
+            "state": ["MH", "PB"],
+            "market": ["Pune", "Patti"],
+            "commodity": ["Potato", "Potato"],
+            "modal_price": [2000.0, 0.20],
+            "quality_flag": ["", "unit_or_outlier"],
+        }
+    )
+    settings = _settings(tmp_path)
+    ParquetLocalStorage(settings.storage).write(
+        "food_mandi", "mandi_prices", df, date(2026, 8, 25)
+    )
+
+    export = tmp_path / "out"
+    entry = build_summary(settings, export_dir=export)["datasets"][0]
+
+    assert entry["download"] == "mandi_prices_latest.csv"
+    assert entry["download_rows"] == 2
+    exported = pd.read_csv(export / entry["download"])
+    assert len(exported) == 2, "flagged rows belong in the export"
+    assert "quality_flag" in exported.columns
+
+    # ...but the averages shown on the page use clean rows only.
+    assert entry["chart"]["values"] == [2000.0]
+    assert entry["flagged_rows"] == 1
+
+
+def test_provenance_is_passed_through_from_config(tmp_path):
+    settings = _settings(tmp_path)
+    settings.sources["mandi_prices"].options["provenance"] = {
+        "source_name": "data.gov.in",
+        "license": "GODL",
+    }
+    entry = build_summary(settings)["datasets"][0]
+    assert entry["provenance"]["source_name"] == "data.gov.in"
+
+
+def test_no_export_dir_means_no_download_offered(tmp_path):
+    entry = build_summary(_settings(tmp_path))["datasets"][0]
+    assert entry["download"] is None
