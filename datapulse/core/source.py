@@ -25,6 +25,7 @@ import pandas as pd
 from .config import SourceConfig
 from .http import HttpClient
 from .logging import get_logger
+from .quality import CLEAN, Rule, apply_rules
 from .schema import Schema
 
 
@@ -61,6 +62,8 @@ class BaseSource(ABC):
     name: ClassVar[str]
     domain: ClassVar[str]
     schema: ClassVar[Schema]
+    # Checks applied after validation. Rows are flagged, never dropped.
+    quality_rules: ClassVar[tuple[Rule, ...]] = ()
     # Set False for sources whose data is legally/ToS restricted from redistribution.
     publishable: ClassVar[bool] = True
 
@@ -90,7 +93,26 @@ class BaseSource(ABC):
         df = self.parse(raw, ctx)
         self._stamp(df, "collected_date", pd.to_datetime(ctx.run_date))
         self._stamp(df, "source", self.name)
+        df = self._flag_quality(df)
         return self.schema.validate(df)
+
+    def _flag_quality(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Attach `quality_flag` without removing anything.
+
+        Suspect rows stay in the archive with their original values; the flag
+        lets consumers exclude them from averages while keeping the evidence.
+        """
+        if "quality_flag" not in self.schema.names:
+            return df
+        df = df.copy()
+        df["quality_flag"] = apply_rules(df, self.quality_rules)
+        flagged = int((df["quality_flag"] != CLEAN).sum())
+        if flagged:
+            counts = (
+                df.loc[df["quality_flag"] != CLEAN, "quality_flag"].value_counts().to_dict()
+            )
+            self.log.info("flagged %d of %d rows: %s", flagged, len(df), counts)
+        return df
 
     def _stamp(self, df: pd.DataFrame, column: str, value: Any) -> None:
         """Fill a provenance column the source did not populate.

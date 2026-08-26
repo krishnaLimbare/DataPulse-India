@@ -266,3 +266,24 @@ def test_total_collection_failure_still_raises():
     ctx = _partitioned_ctx(_AllBroken(rows), values=["Gujarat", "Kerala"])
     with pytest.raises(RuntimeError, match="collected nothing"):
         MandiPrices(ctx.config).fetch(ctx)
+
+
+def test_quality_flag_is_attached_without_dropping_rows():
+    """End-to-end: a unit error survives into the archive, clearly marked."""
+    peers = [
+        {**LOWER[0], "market": f"m{i}", "min_price": "1800", "modal_price": "2000",
+         "max_price": "2200"}
+        for i in range(6)
+    ]
+    # Same market, same crop, priced per kilogram instead of per quintal.
+    broken = {**LOWER[0], "market": "patti", "min_price": "0.20", "modal_price": "0.20",
+              "max_price": "0.20"}
+    source = MandiPrices(CFG)
+    source.fetch = lambda ctx: peers + [broken]
+    out = source.collect(CTX)
+
+    assert len(out) == 7, "flagged rows must be kept, not deleted"
+    flagged = out[out.quality_flag != ""]
+    assert len(flagged) == 1
+    assert flagged.iloc[0]["market"] == "patti"
+    assert flagged.iloc[0]["modal_price"] == 0.20, "the raw value is preserved"
