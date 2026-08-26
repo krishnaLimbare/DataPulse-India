@@ -93,7 +93,7 @@ in `core/` changes. See [docs/ADDING_A_SOURCE.md](docs/ADDING_A_SOURCE.md).
 
 Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## License
+## Data licensing
 
-MIT for the code. Each dataset carries the licence of its upstream source —
-documented in that source's module docstring.
+Each dataset carries the licence of its upstream source, documented in that
+source's module docstring and shown on the dashboard.
