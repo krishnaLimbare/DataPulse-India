@@ -279,7 +279,7 @@ def test_quality_flag_is_attached_without_dropping_rows():
     broken = {**LOWER[0], "market": "patti", "min_price": "0.20", "modal_price": "0.20",
               "max_price": "0.20"}
     source = MandiPrices(CFG)
-    source.fetch = lambda ctx: peers + [broken]
+    source.fetch = lambda ctx: [*peers, broken]
     out = source.collect(CTX)
 
     assert len(out) == 7, "flagged rows must be kept, not deleted"
