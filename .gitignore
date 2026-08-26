@@ -19,6 +19,11 @@ htmlcov/
 *.key
 credentials.json
 
+# Derived data: regenerated from the parquet at deploy time by
+# `datapulse summarize`. Tracking it made every nightly run conflict with any
+# branch that had also run the pipeline.
+dashboard/data/summary.json
+
 # Local scratch
 .DS_Store
 datasets/_scratch/
