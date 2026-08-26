@@ -538,3 +538,27 @@ body {
 .prov-notes { margin: 0; padding-left: 1.1rem; }
 .prov-notes li { font-size: .9rem; line-height: 1.55; opacity: .8; margin-bottom: .25rem; }
 .prov-raw { margin: 1.1rem 0 0; font-size: .85rem; }
+
+/* --- table filters ----------------------------------------------------- */
+.table-filters { display: flex; gap: .5rem; align-items: center; }
+.state-select {
+  background: rgba(11, 15, 25, .9);
+  color: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  font: inherit;
+  cursor: pointer;
+  max-width: 100%;
+}
+.data-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.data-table th.sortable:hover { opacity: .8; }
+.data-table th .arrow { opacity: .5; font-size: .75em; margin-left: .25rem; }
+.data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Few markets means the min/max are one trader's quote, not a regional price. */
+.data-table tr.thin td { opacity: .55; }
+.table-note { margin: .9rem 0 0; font-size: .82rem; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

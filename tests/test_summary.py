@@ -107,3 +107,76 @@ def test_provenance_is_passed_through_from_config(tmp_path):
 def test_no_export_dir_means_no_download_offered(tmp_path):
     entry = build_summary(_settings(tmp_path))["datasets"][0]
     assert entry["download"] is None
+
+
+def _table_settings(tmp_path):
+    settings = _settings(tmp_path)
+    settings.sources["mandi_prices"].options["summary"]["table"] = {
+        "dimension": "commodity",
+        "facet": "state",
+        "metric": "modal_price",
+        "count": "market",
+    }
+    return settings
+
+
+def _write(settings, df):
+    ParquetLocalStorage(settings.storage).write(
+        "food_mandi", "mandi_prices", df, date(2026, 8, 25)
+    )
+
+
+def test_table_gives_an_all_india_row_and_a_row_per_state(tmp_path):
+    df = pd.DataFrame(
+        {
+            "collected_date": [pd.Timestamp("2026-08-25")] * 4,
+            "state": ["MH", "MH", "PB", "PB"],
+            "market": ["Pune", "Nashik", "Patti", "Ludhiana"],
+            "commodity": ["Onion"] * 4,
+            "modal_price": [1000.0, 2000.0, 3000.0, 5000.0],
+        }
+    )
+    settings = _table_settings(tmp_path)
+    _write(settings, df)
+    table = build_summary(settings)["datasets"][0]["table"]
+
+    assert table["facets"] == ["MH", "PB"]
+
+    india = table["overall"][0]
+    assert india["low"] == 1000 and india["high"] == 5000
+    assert india["typical"] == 2500  # median of all four rows
+    assert india["places"] == 4
+    assert india["spread"] == 5.0
+
+    mh = next(r for r in table["faceted"] if r["state"] == "MH")
+    assert mh["low"] == 1000 and mh["high"] == 2000 and mh["places"] == 2
+
+
+def test_all_india_typical_is_not_a_median_of_medians(tmp_path):
+    """Two rows in one state, one in another: the true median is the middle row."""
+    df = pd.DataFrame(
+        {
+            "collected_date": [pd.Timestamp("2026-08-25")] * 3,
+            "state": ["MH", "MH", "PB"],
+            "market": ["a", "b", "c"],
+            "commodity": ["Onion"] * 3,
+            "modal_price": [100.0, 200.0, 900.0],
+        }
+    )
+    settings = _table_settings(tmp_path)
+    _write(settings, df)
+    india = build_summary(settings)["datasets"][0]["table"]["overall"][0]
+
+    assert india["typical"] == 200  # median of 100/200/900
+    # a median of state medians would give (150 + 900) / 2 = 525
+    assert india["typical"] != 525
+
+
+def test_table_is_absent_when_not_configured(tmp_path):
+    settings = _settings(tmp_path)
+    _write(settings, pd.DataFrame({
+        "collected_date": [pd.Timestamp("2026-08-25")],
+        "state": ["MH"], "market": ["Pune"], "commodity": ["Onion"], "modal_price": [100.0],
+    }))
+    table = build_summary(settings)["datasets"][0]["table"]
+    assert table["overall"] == [] and table["facets"] == []

@@ -124,10 +124,15 @@
         <div class="table-toolbar">
           <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Type a crop or state — try Potato, Onion, or Gujarat">
+            <input type="text" id="searchInput" placeholder="Search a crop — try Potato, Onion or Tomato">
           </div>
           
-          <div class="filter-pills" id="filterPills"><!-- derived from data --></div>
+          <div class="table-filters">
+            <label class="sr-only" for="stateFilter">Filter by state</label>
+            <select id="stateFilter" class="state-select">
+              <option value="all">All of India</option>
+            </select>
+          </div>
         </div>
 
         <!-- Table View -->
@@ -135,7 +140,9 @@
           <table class="data-table">
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
+          
           </table>
+          <p class="muted table-note" id="tableNote"></p>
         </div>
       </div>
 

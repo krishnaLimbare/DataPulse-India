@@ -46,6 +46,13 @@ sources:
 
       summary:
         label: "Food & Mandi Prices"
+        # The browsable table: one row per crop, and per crop-and-state so the
+        # page can filter by state without another request.
+        table:
+          dimension: commodity
+          facet: state
+          metric: modal_price
+          count: market
         chart_title: "Average modal price by commodity (INR / quintal)"
         dimension: commodity
         metric: modal_price

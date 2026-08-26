@@ -8,7 +8,7 @@
 const SUMMARY_URL = "data/summary.json";
 const $ = (id) => document.getElementById(id);
 
-const state = { datasets: [], active: null, filter: "all", query: "" };
+const state = { datasets: [], active: null, region: "all", query: "", sort: "places", desc: true };
 
 const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : n ?? "—");
 const esc = (s) =>
@@ -85,7 +85,7 @@ function renderTabs() {
 function select(dataset) {
   if (!dataset) return;
   state.active = dataset;
-  state.filter = "all";
+  state.region = "all";
   state.query = "";
   const searchBox = $("searchInput");
   if (searchBox) searchBox.value = "";
@@ -103,7 +103,7 @@ function select(dataset) {
     $("analyticsChart").innerHTML = emptyState("No data collected for this dataset yet.");
     $("tableHead").innerHTML = "";
     $("tableBody").innerHTML = "";
-    $("filterPills").innerHTML = "";
+    renderRegions(dataset);
     setKpis(null);
     renderDownload(dataset);
     renderProvenance(dataset);
@@ -116,7 +116,7 @@ function select(dataset) {
   renderProvenance(dataset);
   setKpis(dataset);
   drawChart(dataset.chart);
-  renderPills(dataset);
+  renderRegions(dataset);
   renderTable(dataset);
 }
 
@@ -231,38 +231,116 @@ function drawChart(chart) {
     `aria-label="${esc($("chartTitle").textContent)}">${rows}</svg>`;
 }
 
-function renderPills(dataset) {
-  // Pills come from the data's own top values, so they always match what is there.
-  const host = $("filterPills");
-  host.innerHTML = "";
-  ["all"].concat(dataset.chart.labels.slice(0, 5)).forEach((v) => {
-    const b = document.createElement("button");
-    b.className = "pill" + (v === state.filter ? " active" : "");
-    b.textContent = v === "all" ? "All" : v;
-    b.onclick = () => {
-      state.filter = v;
-      renderPills(dataset);
-      renderTable(dataset);
-    };
-    host.append(b);
+// A row per crop, optionally narrowed to one state. Both views are computed by
+// the pipeline -- a median of medians is not a median, so the all-India figure
+// has to come from the underlying rows, not from averaging the state rows.
+const COLUMNS = [
+  { key: "dimension", label: "Crop", num: false },
+  { key: "places", label: "Markets", num: true },
+  { key: "low", label: "Cheapest", num: true, money: true },
+  { key: "typical", label: "Typical", num: true, money: true },
+  { key: "high", label: "Priciest", num: true, money: true },
+  { key: "spread", label: "Spread", num: true, ratio: true },
+];
+
+// Under this many markets the min and max are one trader's quote, not a
+// regional price -- shown, but visibly de-emphasised.
+const THIN_MARKETS = 5;
+
+function renderRegions(dataset) {
+  const select = $("stateFilter");
+  if (!select) return;
+  const table = dataset.table || {};
+  const facets = table.facets || [];
+  select.innerHTML = '<option value="all">All of India</option>';
+  facets.forEach((f) => {
+    const o = document.createElement("option");
+    o.value = f;
+    o.textContent = f;
+    select.append(o);
   });
+  select.value = state.region;
+  select.disabled = !facets.length;
+}
+
+function currentRows(dataset) {
+  const table = dataset.table || {};
+  if (state.region === "all") return table.overall || [];
+  return (table.faceted || []).filter((r) => r[table.facet] === state.region);
 }
 
 function renderTable(dataset) {
-  const rows = dataset.preview || [];
-  const columns = rows.length ? Object.keys(rows[0]) : [];
-  $("tableHead").innerHTML = `<tr>${columns.map((c) => `<th>${esc(titleCase(c))}</th>`).join("")}</tr>`;
+  const table = dataset.table || {};
+  const dim = table.dimension;
+  if (!dim) {
+    $("tableHead").innerHTML = "";
+    $("tableBody").innerHTML = "";
+    $("tableNote").textContent = "";
+    return;
+  }
 
-  const q = state.query.toLowerCase();
-  const pill = state.filter.toLowerCase();
-  const visible = rows.filter((r) => {
-    const blob = Object.values(r).join(" ").toLowerCase();
-    return (!q || blob.includes(q)) && (state.filter === "all" || blob.includes(pill));
+  $("tableHead").innerHTML =
+    "<tr>" +
+    COLUMNS.map((c) => {
+      const arrow = state.sort === c.key ? (state.desc ? "▼" : "▲") : "";
+      return `<th class="sortable${c.num ? " num" : ""}" data-key="${c.key}">${esc(c.label)}` +
+             `<span class="arrow">${arrow}</span></th>`;
+    }).join("") +
+    "</tr>";
+
+  [...$("tableHead").querySelectorAll("th")].forEach((th) => {
+    th.onclick = () => {
+      const key = th.dataset.key;
+      // Same column toggles direction; a new column starts descending, except
+      // the name column which reads naturally A-Z.
+      if (state.sort === key) state.desc = !state.desc;
+      else { state.sort = key; state.desc = key !== "dimension"; }
+      renderTable(dataset);
+    };
   });
 
-  $("tableBody").innerHTML = visible.length
-    ? visible.map((r) => `<tr>${columns.map((c) => `<td>${esc(cell(r[c]))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${columns.length || 1}" class="muted">No rows match this filter.</td></tr>`;
+  const q = state.query.trim().toLowerCase();
+  let rows = currentRows(dataset);
+  if (q) rows = rows.filter((r) => String(r[dim] || "").toLowerCase().includes(q));
+
+  const key = state.sort === "dimension" ? dim : state.sort;
+  rows = [...rows].sort((a, b) => {
+    const x = a[key], y = b[key];
+    if (typeof x === "string" || typeof y === "string")
+      return String(x || "").localeCompare(String(y || ""));
+    return (x ?? -Infinity) - (y ?? -Infinity);
+  });
+  if (state.desc) rows.reverse();
+
+  $("tableBody").innerHTML = rows.length
+    ? rows
+        .map((r) => {
+          const thin = (r.places ?? 0) < THIN_MARKETS ? ' class="thin"' : "";
+          return `<tr${thin}>` + COLUMNS.map((c) => {
+            const v = c.key === "dimension" ? r[dim] : r[c.key];
+            if (v === null || v === undefined) return `<td${c.num ? ' class="num"' : ""}>—</td>`;
+            let text = c.money ? `₹${Math.round(v).toLocaleString("en-IN")}`
+                     : c.ratio ? `${v}×`
+                     : typeof v === "number" ? fmt(v) : v;
+            return `<td${c.num ? ' class="num"' : ""}>${esc(text)}</td>`;
+          }).join("") + "</tr>";
+        })
+        .join("")
+    : `<tr><td colspan="${COLUMNS.length}" class="muted">No crop matches that search.</td></tr>`;
+
+  const where = state.region === "all" ? "across India" : `in ${state.region}`;
+  $("tableNote").textContent =
+    `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}. ` +
+    `Prices are ₹ per quintal. Rows from fewer than ${THIN_MARKETS} markets are dimmed — ` +
+    `with so few reports the cheapest and priciest are single quotes, not a regional range.`;
+}
+
+const regionSelect = $("stateFilter");
+if (regionSelect) {
+  regionSelect.addEventListener("change", (e) => {
+    state.region = e.target.value;
+    if (state.active) renderTable(state.active);
+  });
 }
 
 const search = $("searchInput");
