@@ -163,6 +163,11 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
             "rows": 0,
             "days": 0,
             "last_collected": None,
+            "first_collected": None,
+            # Everything else on the dashboard describes the latest day, so the
+            # latest-day count is what the headline figure has to agree with.
+            # `rows` stays as the archive total, shown alongside it.
+            "rows_latest": 0,
             "chart": {"labels": [], "values": []},
             "chart_title": spec.get("chart_title", ""),
             "stats": {"distinct": {}},
@@ -183,6 +188,7 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
                 entry["days"] = int(dates.dt.date.nunique())
                 if not dates.empty:
                     entry["last_collected"] = str(dates.max().date())
+                    entry["first_collected"] = str(dates.min().date())
                     latest = df[dates == dates.max()]
                 else:
                     latest = df
@@ -203,6 +209,8 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
             entry["stats"] = _stats(clean, spec)
             entry["table"] = _build_table(clean, spec)
             entry["preview"] = _preview(clean, spec)
+            entry["rows_latest"] = len(latest)
+
             if export_dir is not None:
                 # Every row is exported, flagged ones included, so nothing is
                 # hidden -- the flag column lets people filter for themselves.

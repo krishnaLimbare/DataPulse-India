@@ -424,31 +424,36 @@ body {
   min-height: 220px;
 }
 
-/* Inline SVG Chart styling */
-svg {
+/* Inline SVG Chart styling.
+   Scoped to the chart: as a bare `svg {}` rule this stretched every icon on
+   the page to its container's width. */
+#analyticsChart svg {
   width: 100%;
   height: auto;
   overflow: visible;
 }
 
-svg .cat {
+/* Icons keep the size their width/height attributes ask for. */
+svg:not(#analyticsChart svg) { flex: none; }
+
+#analyticsChart svg .cat {
   fill: var(--text-muted);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
 }
 
-svg .bar {
+#analyticsChart svg .bar {
   fill: var(--accent);
   opacity: 0.85;
   transition: opacity 0.15s ease;
 }
 
-svg .bar:hover {
+#analyticsChart svg .bar:hover {
   opacity: 1;
 }
 
-svg .val {
+#analyticsChart svg .val {
   fill: var(--text-main);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -576,8 +581,16 @@ svg .val {
   color: var(--accent);
 }
 
-.financial-table tr.thin {
-  opacity: 0.55;
+/* A low market count means the cheapest/priciest are single quotes rather
+   than a regional range. Marking the count says that precisely; dimming the
+   whole row just looked like the text had failed to render. */
+.financial-table td.few-samples {
+  color: var(--warning);
+}
+.financial-table td.few-samples::after {
+  content: "*";
+  margin-left: 2px;
+  opacity: 0.7;
 }
 
 .financial-table td {
