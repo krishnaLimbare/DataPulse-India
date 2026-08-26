@@ -27,6 +27,7 @@ import pandas as pd
 
 from .config import Settings
 from .logging import get_logger
+from .quality import CLEAN
 from .source import registry
 from .storage import build_storage
 
@@ -96,6 +97,7 @@ def build_summary(settings: Settings) -> dict[str, Any]:
             "chart": {"labels": [], "values": []},
             "chart_title": spec.get("chart_title", ""),
             "stats": {"distinct": {}},
+            "flagged_rows": 0,
             "preview": [],
             "preview_note": "",
         }
@@ -113,15 +115,31 @@ def build_summary(settings: Settings) -> dict[str, Any]:
                     latest = df
             else:
                 latest = df
+            # Averages and previews use clean rows only -- a single
+            # mis-keyed unit is enough to drag a commodity average visibly
+            # off. The flagged rows stay in the parquet either way.
+            if "quality_flag" in latest.columns:
+                flagged = latest["quality_flag"].fillna(CLEAN) != CLEAN
+                entry["flagged_rows"] = int(flagged.sum())
+                clean = latest[~flagged]
+            else:
+                clean = latest
+
             if (dim := spec.get("dimension")) and (met := spec.get("metric")):
-                entry["chart"] = _series(latest, dim, met)
-            entry["stats"] = _stats(latest, spec)
-            entry["preview"] = _preview(latest, spec)
+                entry["chart"] = _series(clean, dim, met)
+            entry["stats"] = _stats(clean, spec)
+            entry["preview"] = _preview(clean, spec)
             if entry["preview"]:
-                entry["preview_note"] = (
-                    f"Showing {len(entry['preview'])} of {len(latest):,} rows "
+                note = (
+                    f"Showing {len(entry['preview'])} of {len(latest):,} prices "
                     f"collected on {entry['last_collected']}."
                 )
+                if entry["flagged_rows"]:
+                    note += (
+                        f" {entry['flagged_rows']} row(s) failed a quality check and are "
+                        "excluded from the averages below."
+                    )
+                entry["preview_note"] = note
 
         datasets.append(entry)
 

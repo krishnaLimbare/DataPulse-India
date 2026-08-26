@@ -24,6 +24,7 @@ from typing import Any
 
 import pandas as pd
 
+from datapulse.core.quality import Ordered, PeerRatio
 from datapulse.core.schema import Column, Schema
 from datapulse.core.source import BaseSource, RunContext, register
 
@@ -75,8 +76,19 @@ class MandiPrices(BaseSource):
             Column("max_price", "float64"),
             Column("modal_price", "float64"),
             Column("source", "string", nullable=False),
+            Column("quality_flag", "string"),
         ],
         primary_key=["collected_date", *PRIMARY_KEY],
+    )
+
+    quality_rules = (
+        # A modal price outside its own min/max is internally inconsistent.
+        Ordered(["min_price", "modal_price", "max_price"], code="price_order_invalid"),
+        # Catches unit errors: Patti APMC (Punjab) reports rupees per kilogram
+        # while the rest of the country reports per quintal, so its potato
+        # arrives as 0.20 against a national median near 2000. Real regional
+        # spread stays far inside 20x.
+        PeerRatio("modal_price", group_by=["commodity"], factor=20, code="unit_or_outlier"),
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
