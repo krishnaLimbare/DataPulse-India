@@ -435,6 +435,32 @@ if (regionSelect) {
   });
 }
 
+// Copy the snippet: people copy code, they do not read it off a screen.
+const copyBtn = $("copySnippet");
+if (copyBtn) {
+  copyBtn.addEventListener("click", async () => {
+    const code = $("snippetCode");
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      copyBtn.textContent = "Copied";
+      copyBtn.classList.add("copied");
+    } catch {
+      // Clipboard access can be blocked; select the text so Ctrl+C still works.
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      copyBtn.textContent = "Press Ctrl+C";
+    }
+    setTimeout(() => {
+      copyBtn.textContent = "Copy";
+      copyBtn.classList.remove("copied");
+    }, 2000);
+  });
+}
+
 const search = $("searchInput");
 if (search) {
   search.addEventListener("input", (e) => {
