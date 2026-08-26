@@ -44,9 +44,24 @@
     <!-- Hero / Summary Banner -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Real-time Economic Indicators across India</h1>
-        <p id="heroSub">Automated daily pipelines archiving Indian open data. Every number on this page is generated from the collected dataset.</p>
+        <h1>What do food prices look like across India today?</h1>
+        <p id="heroSub">Every night a robot reads the Government of India&rsquo;s wholesale market
+        (<em>mandi</em>) price feed, checks it, and saves a permanent copy here. The numbers below
+        are the latest ones it collected.</p>
       </div>
+    </section>
+
+    <!-- Plain-language orientation: three steps, no jargon. -->
+    <section class="how-it-works" aria-label="How this works">
+      <div class="step"><span class="step-num">1</span>
+        <p><strong>Collect</strong><br>A scheduled job downloads today&rsquo;s prices from every
+        state, automatically.</p></div>
+      <div class="step"><span class="step-num">2</span>
+        <p><strong>Check</strong><br>Every row is validated and duplicates removed before anything
+        is saved.</p></div>
+      <div class="step"><span class="step-num">3</span>
+        <p><strong>Keep</strong><br>Each day is stored forever, so prices can be compared over
+        time.</p></div>
     </section>
 
     <!-- Main Domain Navigation Tabs (Baby-simple UX) -->
@@ -57,22 +72,22 @@
     <!-- KPI Summary Metrics Grid -->
     <section class="kpi-grid" id="kpiGrid">
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Rows Collected</span><span class="kpi-icon">&#128230;</span></div>
+        <div class="kpi-header"><span class="kpi-title">Prices Collected</span><span class="kpi-icon">&#128230;</span></div>
         <div class="kpi-value" id="kpiTotalRows">&mdash;</div>
         <div class="kpi-subtext" id="kpiTotalRowsSub">&nbsp;</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Markets Covered</span><span class="kpi-icon">&#128205;</span></div>
+        <div class="kpi-header"><span class="kpi-title">Markets</span><span class="kpi-icon">&#128205;</span></div>
         <div class="kpi-value" id="kpiMarkets">&mdash;</div>
         <div class="kpi-subtext" id="kpiMarketsSub">&nbsp;</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Most Reported</span><span class="kpi-icon">&#128200;</span></div>
+        <div class="kpi-header"><span class="kpi-title">Most Common Crop</span><span class="kpi-icon">&#128200;</span></div>
         <div class="kpi-value" id="kpiTopCommodity">&mdash;</div>
         <div class="kpi-subtext" id="kpiTopCommoditySub">&nbsp;</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-header"><span class="kpi-title">Last Collected</span><span class="kpi-icon">&#9889;</span></div>
+        <div class="kpi-header"><span class="kpi-title">Prices From</span><span class="kpi-icon">&#9889;</span></div>
         <div class="kpi-value" id="kpiStatus">&mdash;</div>
         <div class="kpi-subtext" id="kpiStatusSub">&nbsp;</div>
       </div>
@@ -88,7 +103,7 @@
           <p id="panelDescription" class="muted">Live commodity prices collected from agricultural wholesale markets across India (data.gov.in).</p>
         </div>
         <div class="panel-actions">
-          <a id="dataLink" href="https://github.com/krishnaLimbare/DataPulse-India/tree/develop/datasets"
+          <a id="dataLink" title="Download the raw daily files" href="https://github.com/krishnaLimbare/DataPulse-India/tree/develop/datasets"
              target="_blank" rel="noopener" class="secondary-btn">Browse raw parquet on GitHub</a>
         </div>
       </div>
@@ -109,7 +124,7 @@
         <div class="table-toolbar">
           <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search commodity (e.g. Potato, Tomato, Onion) or state (e.g. Tamil Nadu)...">
+            <input type="text" id="searchInput" placeholder="Type a crop or state — try Potato, Onion, or Gujarat">
           </div>
           
           <div class="filter-pills" id="filterPills"><!-- derived from data --></div>

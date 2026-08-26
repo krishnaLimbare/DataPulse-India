@@ -474,3 +474,24 @@ body {
 /* A dataset with no collected rows is visibly inactive, never faked as live. */
 .tab-btn.is-empty { opacity: .55; }
 .tab-btn.is-empty .tab-tag { font-style: italic; }
+
+/* --- horizontal bar chart --------------------------------------------- */
+#analyticsChart .cat { fill: currentColor; opacity: .85; font-size: 14px; }
+#analyticsChart .val { fill: currentColor; opacity: .6; font-size: 13px; }
+
+/* --- "how it works": three plain steps -------------------------------- */
+.how-it-works {
+  display: grid; gap: 1rem; margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.how-it-works .step {
+  display: flex; gap: .75rem; align-items: flex-start;
+  padding: 1rem 1.1rem; border: 1px solid var(--line, #2a2a2e); border-radius: 12px;
+}
+.how-it-works .step p { margin: 0; font-size: .92rem; line-height: 1.5; opacity: .85; }
+.how-it-works .step strong { opacity: 1; }
+.step-num {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; font-size: .8rem; font-weight: 700;
+  background: #16a34a; color: #fff;
+}

@@ -16,6 +16,26 @@ const esc = (s) =>
 const titleCase = (c) => c.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 const cell = (v) =>
   v === null || v === undefined ? "—" : typeof v === "number" ? v.toLocaleString("en-IN") : v;
+// "2026-08-25T12:50:09+00:00" means nothing at a glance. People read time in
+// relation to now, and Indian prices in IST.
+function timeAgo(iso) {
+  const then = new Date(iso);
+  if (isNaN(then)) return "";
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.round(hrs / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+function niceDate(value) {
+  const d = new Date(value);
+  if (isNaN(d)) return value || "—";
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
 const emptyState = (msg) => `<p class="muted empty-state">${esc(msg)}</p>`;
 
 async function init() {
@@ -32,12 +52,14 @@ async function init() {
   }
 
   state.datasets = summary.datasets || [];
+  const when = summary.generated_at;
   $("provenance").textContent =
-    `Summary generated ${summary.generated_at} · every figure on this page is derived from the collected dataset.`;
+    `Last updated ${timeAgo(when)} (${niceDate(when)}). Every number here is calculated from the ` +
+    `collected data — nothing on this page is typed in by hand.`;
 
   const collecting = state.datasets.filter((d) => d.rows > 0).length;
   $("pipelineStatus").textContent =
-    collecting > 0 ? `${collecting} dataset${collecting > 1 ? "s" : ""} collecting` : "No data yet";
+    collecting > 0 ? `Updated ${timeAgo(summary.generated_at)}` : "No data yet";
 
   renderTabs();
   select(state.datasets.find((d) => d.rows > 0) || state.datasets[0]);
@@ -51,7 +73,7 @@ function renderTabs() {
     btn.className = "tab-btn" + (d.rows === 0 ? " is-empty" : "");
     // A dataset with no rows is labelled as such -- never dressed up as live.
     const tag =
-      d.rows > 0 ? `${fmt(d.rows)} rows · ${d.days} day${d.days > 1 ? "s" : ""}` : "Not collecting yet";
+      d.rows > 0 ? `${fmt(d.rows)} prices` : "Coming soon";
     btn.innerHTML = '<span class="tab-info"><span class="tab-title"></span><span class="tab-tag"></span></span>';
     btn.querySelector(".tab-title").textContent = d.label;
     btn.querySelector(".tab-tag").textContent = tag;
@@ -76,7 +98,7 @@ function select(dataset) {
 
   if (!dataset.rows) {
     $("panelDescription").textContent =
-      "This dataset has no collected data yet. Its pipeline is defined but not enabled.";
+      "We are not collecting this one yet. The pipeline is built and ready to switch on.";
     $("chartBadge").textContent = "";
     $("analyticsChart").innerHTML = emptyState("No data collected for this dataset yet.");
     $("tableHead").innerHTML = "";
@@ -87,7 +109,7 @@ function select(dataset) {
   }
 
   $("panelDescription").textContent = dataset.preview_note;
-  $("chartBadge").textContent = `Top ${dataset.chart.labels.length}`;
+  $("chartBadge").textContent = `${dataset.chart.labels.length} most expensive`;
   setKpis(dataset);
   drawChart(dataset.chart);
   renderPills(dataset);
@@ -106,69 +128,63 @@ function setKpis(d) {
   const top = d.stats && d.stats.top_by_count;
 
   $("kpiTotalRows").textContent = fmt(d.rows);
-  $("kpiTotalRowsSub").textContent = `across ${d.days} collection day${d.days > 1 ? "s" : ""}`;
+  $("kpiTotalRowsSub").textContent =
+    d.days > 1 ? `collected over ${d.days} days` : "collected today";
 
   $("kpiMarkets").textContent = fmt(distinct.market);
-  $("kpiMarketsSub").textContent = distinct.state ? `in ${fmt(distinct.state)} states & UTs` : "";
+  $("kpiMarketsSub").textContent = distinct.state ? `across ${fmt(distinct.state)} states` : "";
 
   $("kpiTopCommodity").textContent = top ? top.value : "—";
-  $("kpiTopCommoditySub").textContent = top ? `${fmt(top.reports)} market reports` : "";
+  $("kpiTopCommoditySub").textContent = top ? `priced at ${fmt(top.reports)} markets` : "";
 
-  $("kpiStatus").textContent = d.last_collected || "—";
-  $("kpiStatusSub").textContent = "schema-validated on write";
+  $("kpiStatus").textContent = niceDate(d.last_collected);
+  $("kpiStatusSub").textContent = "date of the latest prices";
 }
 
 // Bar chart drawn as inline SVG -- no chart library, so nothing loads from a CDN.
+// Horizontal bars: commodity names are long ("Arecanut(Betelnut/Supari)") and
+// rotated x-axis labels collided with everything below the chart. Reading down
+// a list is also plainly easier than decoding angled text.
 function drawChart(chart) {
   const host = $("analyticsChart");
   const labels = chart.labels || [];
   const values = chart.values || [];
   if (!labels.length) {
-    host.innerHTML = emptyState("No chartable values for this dataset.");
+    host.innerHTML = emptyState("No chart data for this dataset yet.");
     return;
   }
 
+  const rowH = 34;
+  const gap = 10;
+  const padL = 210;
+  const padR = 90;
+  const padT = 8;
   const W = 900;
-  const H = 400;
-  const pad = { top: 16, right: 16, bottom: 110, left: 72 };
-  const plotW = W - pad.left - pad.right;
-  const plotH = H - pad.top - pad.bottom;
+  const H = padT + labels.length * (rowH + gap);
+  const plotW = W - padL - padR;
   const max = Math.max(...values) || 1;
-  const band = plotW / labels.length;
-  const barW = Math.min(band * 0.62, 56);
-  const ticks = 4;
 
-  const grid = Array.from({ length: ticks + 1 }, (_, i) => {
-    const v = (max / ticks) * i;
-    const y = pad.top + plotH - (v / max) * plotH;
-    return (
-      `<line x1="${pad.left}" y1="${y}" x2="${W - pad.right}" y2="${y}" class="grid"/>` +
-      `<text x="${pad.left - 10}" y="${y + 4}" class="axis" text-anchor="end">${Math.round(v).toLocaleString("en-IN")}</text>`
-    );
-  }).join("");
-
-  const bars = labels
+  const rows = labels
     .map((label, i) => {
       const v = values[i];
-      const h = (v / max) * plotH;
-      const x = pad.left + band * i + (band - barW) / 2;
-      const y = pad.top + plotH - h;
-      const labelY = pad.top + plotH + 18;
-      const short = label.length > 16 ? label.slice(0, 15) + "…" : label;
+      const w = Math.max((v / max) * plotW, 2);
+      const y = padT + i * (rowH + gap);
+      const short = label.length > 26 ? label.slice(0, 25) + "…" : label;
       return (
-        `<g><rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="5" class="bar">` +
-        `<title>${esc(label)}: ${v.toLocaleString("en-IN")}</title></rect>` +
-        `<text x="${x + barW / 2}" y="${labelY}" class="axis tick" text-anchor="end" ` +
-        `transform="rotate(-40 ${x + barW / 2} ${labelY})">${esc(short)}</text></g>`
+        `<g>` +
+        `<text x="${padL - 12}" y="${y + rowH / 2 + 5}" class="cat" text-anchor="end">${esc(short)}` +
+        `<title>${esc(label)}</title></text>` +
+        `<rect x="${padL}" y="${y}" width="${w}" height="${rowH}" rx="6" class="bar"/>` +
+        `<text x="${padL + w + 10}" y="${y + rowH / 2 + 5}" class="val">` +
+        `₹${Math.round(v).toLocaleString("en-IN")}</text>` +
+        `</g>`
       );
     })
     .join("");
 
   host.innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" role="img" preserveAspectRatio="xMidYMid meet" ` +
-    `aria-label="${esc($("chartTitle").textContent)}">${grid}` +
-    `<line x1="${pad.left}" y1="${pad.top + plotH}" x2="${W - pad.right}" y2="${pad.top + plotH}" class="axis-line"/>` +
-    `${bars}</svg>`;
+    `<svg viewBox="0 0 ${W} ${H}" role="img" preserveAspectRatio="xMinYMin meet" ` +
+    `aria-label="${esc($("chartTitle").textContent)}">${rows}</svg>`;
 }
 
 function renderPills(dataset) {

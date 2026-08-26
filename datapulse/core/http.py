@@ -21,6 +21,15 @@ log = get_logger(__name__)
 RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
 
+def _retry_after_seconds(resp: httpx.Response) -> float | None:
+    """Parse a Retry-After header expressed in seconds."""
+    try:
+        value = float(resp.headers.get("Retry-After", ""))
+    except ValueError:
+        return None
+    return min(value, 120.0) if value > 0 else None
+
+
 class RobotsDisallowed(RuntimeError):
     """The site's robots.txt forbids this path for our user agent."""
 
@@ -52,11 +61,13 @@ class HttpClient:
         timeout: float = 30.0,
         max_retries: int = 3,
         respect_robots: bool = True,
+        backoff_429: float = 30.0,
     ) -> None:
         self.user_agent = user_agent
         self.respect_robots = respect_robots
         self._limiter = _RateLimiter(rate_limit_per_sec)
         self._max_retries = max_retries
+        self._backoff_429 = backoff_429
         self._robots: dict[str, RobotFileParser | None] = {}
         self._client = httpx.Client(
             headers={"User-Agent": user_agent, "Accept-Encoding": "gzip, deflate"},
@@ -96,6 +107,12 @@ class HttpClient:
         def _do() -> httpx.Response:
             self._limiter.wait()
             resp = self._client.get(url, **kwargs)
+            if resp.status_code == 429:
+                # The server is telling us how long to back off; guessing an
+                # exponential delay instead just burns the remaining retries.
+                delay = _retry_after_seconds(resp) or self._backoff_429
+                log.warning("rate limited; sleeping %.0fs before retry", delay)
+                time.sleep(delay)
             if resp.status_code in RETRYABLE_STATUS:
                 resp.raise_for_status()
             return resp
