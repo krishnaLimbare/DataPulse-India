@@ -198,12 +198,7 @@
           <span class="getdata-when">Every day collected so far</span>
           <p>Download or clone
           <a href="https://github.com/krishnaLimbare/DataPulse-India" target="_blank" rel="noopener">the
-          repository</a>, then read the whole archive in three lines:</p>
-          <pre class="getdata-code"><code>import pandas as pd, glob
-df = pd.concat(map(pd.read_parquet, glob.glob("datasets/**/*.parquet", recursive=True)))
-df.to_csv("all_prices.csv", index=False)   # only if you want CSV</code></pre>
-          <p class="getdata-tip">Rows that failed a quality check are included. For clean
-          rows only, filter <code>df[df.quality_flag == ""]</code>.</p>
+          repository</a>, then run the snippet below.</p>
         </div>
 
         <div class="getdata-item">
@@ -213,6 +208,24 @@ df.to_csv("all_prices.csv", index=False)   # only if you want CSV</code></pre>
           stored that way.</p>
         </div>
       </div>
+
+      <!-- Full width: a code block squeezed into a grid column just scrolls,
+           and nobody reads a snippet they cannot see the end of. -->
+      <figure class="getdata-snippet">
+        <figcaption>
+          <span>Read the whole archive in Python</span>
+          <button type="button" id="copySnippet" class="copy-btn">Copy</button>
+        </figcaption>
+        <pre class="getdata-code"><code id="snippetCode">import pandas as pd, glob
+
+files = glob.glob("datasets/**/*.parquet", recursive=True)
+df = pd.concat(map(pd.read_parquet, files))
+
+clean = df[df.quality_flag == ""]     # drop rows that failed a check
+clean.to_csv("all_prices.csv", index=False)</code></pre>
+        <p class="getdata-tip">Flagged rows are kept in the files rather than deleted, so
+        you can inspect them. Skip the <code>clean</code> line to keep everything.</p>
+      </figure>
     </section>
 
       <!-- Provenance & Data Contract Card -->
