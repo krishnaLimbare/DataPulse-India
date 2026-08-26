@@ -751,3 +751,20 @@ svg:not(#analyticsChart svg) { flex: none; }
   color: var(--accent);
   border: 1px solid var(--accent-border);
 }
+
+/* --- progressive table disclosure -------------------------------------- */
+.table-more { display: flex; justify-content: center; padding: 0.85rem 0 0.25rem; }
+.more-btn {
+  background: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.more-btn:hover { background: var(--bg-surface-hover); border-color: var(--accent-border); }
+.more-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.more-btn[hidden] { display: none; }

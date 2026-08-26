@@ -8,7 +8,14 @@
 const SUMMARY_URL = "data/summary.json";
 const $ = (id) => document.getElementById(id);
 
-const state = { datasets: [], active: null, region: "all", query: "", sort: "places", desc: true };
+// 194 crops is far too long to dump on the page at once, so the table starts
+// short and grows in steps.
+const PAGE_SIZE = 25;
+
+const state = {
+  datasets: [], active: null, region: "all", query: "",
+  sort: "places", desc: true, limit: PAGE_SIZE,
+};
 
 const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : n ?? "—");
 const esc = (s) =>
@@ -99,6 +106,7 @@ function select(dataset) {
   state.active = dataset;
   state.region = "all";
   state.query = "";
+  state.limit = PAGE_SIZE;
   const searchBox = $("searchInput");
   if (searchBox) searchBox.value = "";
 
@@ -291,6 +299,34 @@ function currentRows(dataset) {
   return (table.faceted || []).filter((r) => r[table.facet] === state.region);
 }
 
+function renderMoreButton(dataset, total, shown) {
+  const btn = $("tableMore");
+  if (!btn) return;
+
+  if (total <= PAGE_SIZE) {
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+
+  const remaining = total - shown;
+  if (remaining > 0) {
+    btn.textContent = `View more (${Math.min(PAGE_SIZE, remaining)} of ${remaining} left)`;
+    btn.onclick = () => {
+      state.limit += PAGE_SIZE;
+      renderTable(dataset);
+    };
+  } else {
+    // Fully expanded: offer the way back, so a long list is never a dead end.
+    btn.textContent = "Show fewer";
+    btn.onclick = () => {
+      state.limit = PAGE_SIZE;
+      renderTable(dataset);
+      $("tableMore").scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+  }
+}
+
 function renderTable(dataset) {
   const table = dataset.table || {};
   const dim = table.dimension;
@@ -298,6 +334,8 @@ function renderTable(dataset) {
     setHtml("tableHead", "");
     setHtml("tableBody", "");
     setText("tableNote", "");
+    const btn = $("tableMore");
+    if (btn) btn.hidden = true;
     return;
   }
 
@@ -317,6 +355,7 @@ function renderTable(dataset) {
       // the name column which reads naturally A-Z.
       if (state.sort === key) state.desc = !state.desc;
       else { state.sort = key; state.desc = key !== "dimension"; }
+      state.limit = PAGE_SIZE;
       renderTable(dataset);
     };
   });
@@ -334,8 +373,11 @@ function renderTable(dataset) {
   });
   if (state.desc) rows.reverse();
 
-  setHtml("tableBody", rows.length
-    ? rows
+  const shown = rows.slice(0, state.limit);
+  renderMoreButton(dataset, rows.length, shown.length);
+
+  setHtml("tableBody", shown.length
+    ? shown
         .map((r) => {
           const few = (r.places ?? 0) < THIN_MARKETS;
           return "<tr>" + COLUMNS.map((c) => {
@@ -359,8 +401,12 @@ function renderTable(dataset) {
     : `<tr><td colspan="${COLUMNS.length}" class="muted">No crop matches that search.</td></tr>`);
 
   const where = state.region === "all" ? "across India" : `in ${state.region}`;
+  const counted =
+    shown.length < rows.length
+      ? `Showing ${shown.length} of ${rows.length} crops ${where}.`
+      : `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}.`;
   setText("tableNote",
-    `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}. ` +
+    `${counted} ` +
     `Prices are ₹ per quintal. A market count marked * comes from fewer than ` +
     `${THIN_MARKETS} markets — with so few reports the cheapest and priciest are single ` +
     `quotes rather than a regional range.`);
@@ -370,6 +416,7 @@ const regionSelect = $("stateFilter");
 if (regionSelect) {
   regionSelect.addEventListener("change", (e) => {
     state.region = e.target.value;
+    state.limit = PAGE_SIZE;
     if (state.active) renderTable(state.active);
   });
 }
@@ -378,6 +425,7 @@ const search = $("searchInput");
 if (search) {
   search.addEventListener("input", (e) => {
     state.query = e.target.value;
+    state.limit = PAGE_SIZE;
     if (state.active) renderTable(state.active);
   });
   
