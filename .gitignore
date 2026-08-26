@@ -27,3 +27,8 @@ dashboard/data/summary.json
 # Local scratch
 .DS_Store
 datasets/_scratch/
+
+# Kept out of git until deliberately added (git add -f). Swept in twice by
+# an over-broad `git add -A`.
+/Dockerfile
+/docker-compose.yml
