@@ -155,7 +155,7 @@
         <div class="grid-toolbar">
           <div class="search-field">
             <svg class="search-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" id="searchInput" placeholder="Filter by commodity, market or state (e.g. Potato, Tamil Nadu)...">
+            <input type="text" id="searchInput" placeholder="Search a crop (e.g. Potato, Onion, Tomato)">
             <kbd class="hotkey-hint">/</kbd>
           </div>
           
@@ -173,15 +173,53 @@
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
           </table>
+          <div class="table-more">
+            <button type="button" id="tableMore" class="more-btn"></button>
+          </div>
           <p class="table-footnote" id="tableNote"></p>
         </div>
       </div>
+
+
+    <!-- Three ways to get the data, labelled by who each one is for. The CSV
+         covers one day on purpose: the archive as CSV would be ~126 MB at 90
+         days, rebuilt on every deploy. -->
+    <section class="getdata-card" aria-label="Get the data">
+      <h3>Get the data</h3>
+
+      <div class="getdata-grid">
+        <div class="getdata-item">
+          <span class="getdata-when">Just today</span>
+          <p>Use the <strong>Download CSV</strong> button above the table. Opens straight
+          in Excel, Numbers or Google Sheets.</p>
+        </div>
+
+        <div class="getdata-item">
+          <span class="getdata-when">Every day collected so far</span>
+          <p>Download or clone
+          <a href="https://github.com/krishnaLimbare/DataPulse-India" target="_blank" rel="noopener">the
+          repository</a>, then read the whole archive in three lines:</p>
+          <pre class="getdata-code"><code>import pandas as pd, glob
+df = pd.concat(map(pd.read_parquet, glob.glob("datasets/**/*.parquet", recursive=True)))
+df.to_csv("all_prices.csv", index=False)   # only if you want CSV</code></pre>
+          <p class="getdata-tip">Rows that failed a quality check are included. For clean
+          rows only, filter <code>df[df.quality_flag == ""]</code>.</p>
+        </div>
+
+        <div class="getdata-item">
+          <span class="getdata-when">What is a Parquet file?</span>
+          <p>A compressed table format read by Python, R, DuckDB and Excel&rsquo;s Power Query
+          &mdash; about 15&times; smaller than the same data as CSV, which is why the archive is
+          stored that way.</p>
+        </div>
+      </div>
+    </section>
 
       <!-- Provenance & Data Contract Card -->
       <div class="provenance-card" id="provenanceCard">
         <div class="prov-header">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <h4>Data Provenance & Open License</h4>
+          <h4>Where this data comes from</h4>
         </div>
         <div class="prov-grid">
           <div class="prov-item">
@@ -191,10 +229,6 @@
           <div class="prov-item">
             <span class="prov-label">Publisher</span>
             <span class="prov-val" id="provPublisher">&mdash;</span>
-          </div>
-          <div class="prov-item">
-            <span class="prov-label">License</span>
-            <span class="prov-val" id="provLicense">&mdash;</span>
           </div>
           <div class="prov-item">
             <span class="prov-label">Collection Cadence</span>

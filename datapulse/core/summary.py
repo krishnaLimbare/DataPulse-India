@@ -14,7 +14,6 @@ dataset never means editing this module or the dashboard:
         metric: modal_price       # y axis: what we average
         distinct_counts: [state, market]   # KPI tiles
         top_by_count: commodity            # most frequently reported value
-        preview_columns: [state, market, commodity, modal_price]
 """
 
 from __future__ import annotations
@@ -34,7 +33,6 @@ from .storage import build_storage
 log = get_logger(__name__)
 
 TOP_N = 12
-PREVIEW_ROWS = 50
 
 # Parquet is 15x smaller but unopenable for most visitors -- Excel and Sheets
 # cannot read it. The archive stays parquet; the dashboard also publishes the
@@ -132,17 +130,31 @@ def _stats(df: pd.DataFrame, spec: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _preview(df: pd.DataFrame, spec: dict[str, Any]) -> list[dict[str, Any]]:
-    """A small, explicitly-labelled sample so the page can show real rows."""
-    columns = [c for c in spec.get("preview_columns", []) if c in df.columns]
-    if not columns:
-        return []
-    sample = df.loc[:, columns].head(PREVIEW_ROWS)
-    return [
-        {k: (None if pd.isna(v) else (float(v) if isinstance(v, (int, float)) else str(v)))
-         for k, v in row.items()}
-        for row in sample.to_dict(orient="records")
-    ]
+def _nice_date(iso: str | None) -> str:
+    """"26 Aug 2026" reads; "2026-08-26" has to be decoded."""
+    if not iso:
+        return "an unknown date"
+    try:
+        return datetime.strptime(iso, "%Y-%m-%d").strftime("%d %b %Y").lstrip("0")
+    except ValueError:
+        return iso
+
+
+def _headline_note(entry: dict[str, Any]) -> str:
+    """One sentence describing exactly what the page is showing."""
+    distinct = entry["stats"].get("distinct", {})
+    parts = [f"{entry['rows_latest']:,} prices"]
+    if distinct.get("market"):
+        parts.append(f"from {distinct['market']:,} markets")
+    if distinct.get("state"):
+        parts.append(f"in {distinct['state']} states")
+    note = " ".join(parts) + f", collected on {_nice_date(entry['last_collected'])}."
+    if entry["flagged_rows"]:
+        note += (
+            f" {entry['flagged_rows']} failed a quality check and are left out of the "
+            "averages, but are kept in the download."
+        )
+    return note
 
 
 def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[str, Any]:
@@ -172,9 +184,8 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
             "chart_title": spec.get("chart_title", ""),
             "stats": {"distinct": {}},
             "flagged_rows": 0,
-            "preview": [],
             "table": {"dimension": "", "facet": "", "overall": [], "faceted": [], "facets": []},
-            "preview_note": "",
+            "headline_note": "",
             "provenance": cfg.options.get("provenance", {}),
             "download": None,
             "download_rows": 0,
@@ -194,7 +205,7 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
                     latest = df
             else:
                 latest = df
-            # Averages and previews use clean rows only -- a single
+            # Averages use clean rows only -- a single
             # mis-keyed unit is enough to drag a commodity average visibly
             # off. The flagged rows stay in the parquet either way.
             if "quality_flag" in latest.columns:
@@ -208,7 +219,6 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
                 entry["chart"] = _series(clean, dim, met)
             entry["stats"] = _stats(clean, spec)
             entry["table"] = _build_table(clean, spec)
-            entry["preview"] = _preview(clean, spec)
             entry["rows_latest"] = len(latest)
 
             if export_dir is not None:
@@ -221,17 +231,7 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
                 entry["download_rows"] = len(latest)
                 log.info("wrote %s (%d rows)", csv_path, len(latest))
 
-            if entry["preview"]:
-                note = (
-                    f"Showing {len(entry['preview'])} of {len(latest):,} prices "
-                    f"collected on {entry['last_collected']}."
-                )
-                if entry["flagged_rows"]:
-                    note += (
-                        f" {entry['flagged_rows']} row(s) failed a quality check and are "
-                        "excluded from the averages below."
-                    )
-                entry["preview_note"] = note
+            entry["headline_note"] = _headline_note(entry)
 
         datasets.append(entry)
 

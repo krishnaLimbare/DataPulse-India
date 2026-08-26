@@ -93,6 +93,27 @@ in `core/` changes. See [docs/ADDING_A_SOURCE.md](docs/ADDING_A_SOURCE.md).
 
 Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Using the data
+
+Each day lands as one Parquet file under
+`datasets/<domain>/<source>/year=YYYY/month=MM/`. To read the whole archive:
+
+```python
+import pandas as pd, glob
+
+df = pd.concat(map(pd.read_parquet, glob.glob("datasets/**/*.parquet", recursive=True)))
+df.to_csv("all_prices.csv", index=False)   # only if you need CSV
+```
+
+Rows that failed a quality check are kept, not dropped, and carry a reason in
+`quality_flag`. Filter `df[df.quality_flag == ""]` for clean rows only — a
+handful of markets report in rupees per kilogram rather than per quintal, and
+averaging those in will skew a commodity badly.
+
+The dashboard publishes only the latest day as CSV, deliberately: the full
+archive as CSV would be roughly 126 MB at 90 days and is rebuilt on every
+deploy. Parquet is about 15x smaller and every tool that matters reads it.
+
 ## Data licensing
 
 Each dataset carries the licence of its upstream source, documented in that

@@ -8,7 +8,14 @@
 const SUMMARY_URL = "data/summary.json";
 const $ = (id) => document.getElementById(id);
 
-const state = { datasets: [], active: null, region: "all", query: "", sort: "places", desc: true };
+// 194 crops is far too long to dump on the page at once, so the table starts
+// short and grows in steps.
+const PAGE_SIZE = 25;
+
+const state = {
+  datasets: [], active: null, region: "all", query: "",
+  sort: "places", desc: true, limit: PAGE_SIZE,
+};
 
 const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : n ?? "—");
 const esc = (s) =>
@@ -99,6 +106,7 @@ function select(dataset) {
   state.active = dataset;
   state.region = "all";
   state.query = "";
+  state.limit = PAGE_SIZE;
   const searchBox = $("searchInput");
   if (searchBox) searchBox.value = "";
 
@@ -122,7 +130,7 @@ function select(dataset) {
     return;
   }
 
-  setText("panelDescription", dataset.preview_note);
+  setText("panelDescription", dataset.headline_note);
   setText("chartBadge", `${dataset.chart.labels.length} most expensive`);
   renderDownload(dataset);
   renderProvenance(dataset);
@@ -134,6 +142,12 @@ function select(dataset) {
 
 // The CSV is generated at deploy time next to summary.json. If a dataset has
 // none yet, hide the button rather than offering a broken download.
+function downloadName(dataset) {
+  const stem = dataset.download.replace(/_latest\.csv$/, "").replace(/\.csv$/, "");
+  const day = dataset.last_collected;
+  return day ? `${stem}_${day}.csv` : dataset.download;
+}
+
 function renderDownload(dataset) {
   const link = $("downloadCsv");
   if (!link) return;
@@ -143,7 +157,16 @@ function renderDownload(dataset) {
   }
   link.style.display = "";
   link.href = `data/${dataset.download}`;
-  link.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
+  // The file on the server keeps a stable name so the URL never changes, but
+  // the browser is told to save it under the date it covers -- otherwise every
+  // day's download lands as "..._latest(3).csv" and nobody can tell them apart.
+  // ISO order keeps a folder of them sorted chronologically.
+  link.download = downloadName(dataset);
+  // Write into the label span if the markup has one -- setting textContent on
+  // the link itself would wipe the icon sitting beside it.
+  const label = link.querySelector("span") || link;
+  label.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
+  link.title = `${fmt(dataset.download_rows)} rows collected on ${niceDate(dataset.last_collected)}`;
 }
 
 function renderProvenance(dataset) {
@@ -159,7 +182,6 @@ function renderProvenance(dataset) {
 
   setHtml("provSource", p.source_name ? link(p.source_name, p.source_url) : "—");
   setText("provPublisher", p.publisher || "—");
-  setHtml("provLicense", p.license ? link(p.license, p.license_url) : "—");
   setText("provCadence", p.cadence || "—");
   setText("provUnits", p.units || "—");
 
@@ -291,6 +313,34 @@ function currentRows(dataset) {
   return (table.faceted || []).filter((r) => r[table.facet] === state.region);
 }
 
+function renderMoreButton(dataset, total, shown) {
+  const btn = $("tableMore");
+  if (!btn) return;
+
+  if (total <= PAGE_SIZE) {
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+
+  const remaining = total - shown;
+  if (remaining > 0) {
+    btn.textContent = `View more (${Math.min(PAGE_SIZE, remaining)} of ${remaining} left)`;
+    btn.onclick = () => {
+      state.limit += PAGE_SIZE;
+      renderTable(dataset);
+    };
+  } else {
+    // Fully expanded: offer the way back, so a long list is never a dead end.
+    btn.textContent = "Show fewer";
+    btn.onclick = () => {
+      state.limit = PAGE_SIZE;
+      renderTable(dataset);
+      $("tableMore").scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+  }
+}
+
 function renderTable(dataset) {
   const table = dataset.table || {};
   const dim = table.dimension;
@@ -298,6 +348,8 @@ function renderTable(dataset) {
     setHtml("tableHead", "");
     setHtml("tableBody", "");
     setText("tableNote", "");
+    const btn = $("tableMore");
+    if (btn) btn.hidden = true;
     return;
   }
 
@@ -317,6 +369,7 @@ function renderTable(dataset) {
       // the name column which reads naturally A-Z.
       if (state.sort === key) state.desc = !state.desc;
       else { state.sort = key; state.desc = key !== "dimension"; }
+      state.limit = PAGE_SIZE;
       renderTable(dataset);
     };
   });
@@ -334,8 +387,11 @@ function renderTable(dataset) {
   });
   if (state.desc) rows.reverse();
 
-  setHtml("tableBody", rows.length
-    ? rows
+  const shown = rows.slice(0, state.limit);
+  renderMoreButton(dataset, rows.length, shown.length);
+
+  setHtml("tableBody", shown.length
+    ? shown
         .map((r) => {
           const few = (r.places ?? 0) < THIN_MARKETS;
           return "<tr>" + COLUMNS.map((c) => {
@@ -359,8 +415,12 @@ function renderTable(dataset) {
     : `<tr><td colspan="${COLUMNS.length}" class="muted">No crop matches that search.</td></tr>`);
 
   const where = state.region === "all" ? "across India" : `in ${state.region}`;
+  const counted =
+    shown.length < rows.length
+      ? `Showing ${shown.length} of ${rows.length} crops ${where}.`
+      : `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}.`;
   setText("tableNote",
-    `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}. ` +
+    `${counted} ` +
     `Prices are ₹ per quintal. A market count marked * comes from fewer than ` +
     `${THIN_MARKETS} markets — with so few reports the cheapest and priciest are single ` +
     `quotes rather than a regional range.`);
@@ -370,6 +430,7 @@ const regionSelect = $("stateFilter");
 if (regionSelect) {
   regionSelect.addEventListener("change", (e) => {
     state.region = e.target.value;
+    state.limit = PAGE_SIZE;
     if (state.active) renderTable(state.active);
   });
 }
@@ -378,6 +439,7 @@ const search = $("searchInput");
 if (search) {
   search.addEventListener("input", (e) => {
     state.query = e.target.value;
+    state.limit = PAGE_SIZE;
     if (state.active) renderTable(state.active);
   });
   
