@@ -800,25 +800,76 @@ svg:not(#analyticsChart svg) { flex: none; }
 }
 .getdata-item strong { color: var(--text-main); }
 
-/* The snippet must stay copyable: scroll it, never wrap it into nonsense. */
-.getdata-code {
-  margin: 0 0 0.6rem;
-  padding: 0.85rem 1rem;
-  background: var(--bg-main);
+
+/* --- code snippet, full width ------------------------------------------ */
+.getdata-snippet {
+  margin: 1.5rem 0 0;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-main);
+}
+.getdata-snippet figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.copy-btn {
+  background: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--bg-surface-hover); color: var(--text-main); }
+.copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copy-btn.copied { color: var(--accent); border-color: var(--accent-border); }
+
+.getdata-code {
+  margin: 0;
+  padding: 0.95rem 1rem;
   overflow-x: auto;
+  background: transparent;
+  border: 0;
 }
 .getdata-code code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.78rem;
-  line-height: 1.65;
+  font-size: 0.8rem;
+  line-height: 1.7;
   color: var(--text-main);
   white-space: pre;
 }
-.getdata-tip { font-size: 0.82rem; color: var(--text-dim); }
+.getdata-tip {
+  margin: 0;
+  padding: 0.7rem 1rem 0.9rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
 .getdata-tip code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.95em;
   color: var(--text-muted);
 }
+
+/* The default scrollbar renders light-on-dark and looked like a defect. */
+.getdata-code::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar { height: 8px; }
+.getdata-code::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track { background: transparent; }
+.getdata-code::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+.getdata-code, .table-responsive { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
