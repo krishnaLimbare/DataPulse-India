@@ -328,14 +328,22 @@ function renderTable(dataset) {
   setHtml("tableBody", rows.length
     ? rows
         .map((r) => {
-          const thin = (r.places ?? 0) < THIN_MARKETS ? ' class="thin"' : "";
-          return `<tr${thin}>` + COLUMNS.map((c) => {
+          const few = (r.places ?? 0) < THIN_MARKETS;
+          return "<tr>" + COLUMNS.map((c) => {
+            // Flag the market count itself rather than fading the whole row:
+            // the price figures are real, only the sample behind them is thin.
+            const cls = [c.num ? "num" : "", few && c.key === "places" ? "few-samples" : ""]
+              .filter(Boolean).join(" ");
+            const attr = cls ? ` class="${cls}"` : "";
+            const title = few && c.key === "places"
+              ? ' title="Few markets reporting — the cheapest and priciest are single quotes, not a regional range."'
+              : "";
             const v = c.key === "dimension" ? r[dim] : r[c.key];
-            if (v === null || v === undefined) return `<td${c.num ? ' class="num"' : ""}>—</td>`;
-            let text = c.money ? `₹${Math.round(v).toLocaleString("en-IN")}`
-                     : c.ratio ? `${v}×`
-                     : typeof v === "number" ? fmt(v) : v;
-            return `<td${c.num ? ' class="num"' : ""}>${esc(text)}</td>`;
+            if (v === null || v === undefined) return `<td${attr}>—</td>`;
+            const text = c.money ? `₹${Math.round(v).toLocaleString("en-IN")}`
+                       : c.ratio ? `${v}×`
+                       : typeof v === "number" ? fmt(v) : v;
+            return `<td${attr}${title}>${esc(text)}</td>`;
           }).join("") + "</tr>";
         })
         .join("")
@@ -344,8 +352,9 @@ function renderTable(dataset) {
   const where = state.region === "all" ? "across India" : `in ${state.region}`;
   setText("tableNote",
     `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}. ` +
-    `Prices are ₹ per quintal. Rows from fewer than ${THIN_MARKETS} markets are dimmed — ` +
-    `with so few reports the cheapest and priciest are single quotes, not a regional range.`);
+    `Prices are ₹ per quintal. A market count marked * comes from fewer than ` +
+    `${THIN_MARKETS} markets — with so few reports the cheapest and priciest are single ` +
+    `quotes rather than a regional range.`);
 }
 
 const regionSelect = $("stateFilter");
