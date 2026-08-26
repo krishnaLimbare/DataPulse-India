@@ -142,6 +142,12 @@ function select(dataset) {
 
 // The CSV is generated at deploy time next to summary.json. If a dataset has
 // none yet, hide the button rather than offering a broken download.
+function downloadName(dataset) {
+  const stem = dataset.download.replace(/_latest\.csv$/, "").replace(/\.csv$/, "");
+  const day = dataset.last_collected;
+  return day ? `${stem}_${day}.csv` : dataset.download;
+}
+
 function renderDownload(dataset) {
   const link = $("downloadCsv");
   if (!link) return;
@@ -151,6 +157,11 @@ function renderDownload(dataset) {
   }
   link.style.display = "";
   link.href = `data/${dataset.download}`;
+  // The file on the server keeps a stable name so the URL never changes, but
+  // the browser is told to save it under the date it covers -- otherwise every
+  // day's download lands as "..._latest(3).csv" and nobody can tell them apart.
+  // ISO order keeps a folder of them sorted chronologically.
+  link.download = downloadName(dataset);
   // Write into the label span if the markup has one -- setting textContent on
   // the link itself would wipe the icon sitting beside it.
   const label = link.querySelector("span") || link;
