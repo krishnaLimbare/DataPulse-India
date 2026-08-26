@@ -143,7 +143,7 @@ function renderDownload(dataset) {
   }
   link.style.display = "";
   link.href = `data/${dataset.download}`;
-  link.textContent = `Download these ${fmt(dataset.download_rows)} prices (CSV)`;
+  link.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
 }
 
 function renderProvenance(dataset) {
@@ -185,8 +185,17 @@ function setKpis(d) {
   const distinct = (d.stats && d.stats.distinct) || {};
   const top = d.stats && d.stats.top_by_count;
 
-  setText("kpiTotalRows", fmt(d.rows));
-  setText("kpiTotalRowsSub", d.days > 1 ? `collected over ${d.days} days` : "collected today");
+  // The headline matches the chart, the table and the download -- all of which
+  // describe the latest collection day. The archive total sits beneath it, so
+  // the growing asset is still visible without the two being confused.
+  const latest = d.rows_latest || d.rows;
+  setText("kpiTotalRows", fmt(latest));
+  setText(
+    "kpiTotalRowsSub",
+    d.days > 1
+      ? `on ${niceDate(d.last_collected)} · ${fmt(d.rows)} in the archive since ${niceDate(d.first_collected)}`
+      : `on ${niceDate(d.last_collected)}`
+  );
 
   setText("kpiMarkets", fmt(distinct.market));
   setText("kpiMarketsSub", distinct.state ? `across ${fmt(distinct.state)} states` : "");
