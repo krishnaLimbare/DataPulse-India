@@ -38,15 +38,14 @@ jobs:
         run: |
           datapulse run \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
-            ${{ inputs.dry_run && '--dry-run' || '' }} \
-            --no-fail-fast
+            ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - name: Refresh dashboard summary
-        if: ${{ !inputs.dry_run }}
+        if: ${{ always() && !inputs.dry_run }}
         run: datapulse summarize
 
       - name: Commit datasets
-        if: ${{ !inputs.dry_run }}
+        if: ${{ always() && !inputs.dry_run }}
         run: |
           git config user.name  "datapulse-bot"
           git config user.email "actions@github.com"

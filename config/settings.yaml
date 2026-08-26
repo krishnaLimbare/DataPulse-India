@@ -15,7 +15,9 @@ sources:
     enabled: true            # needs DATAPULSE_API_KEYS__DATA_GOV_IN
     domain: food_mandi
     schedule: daily
-    rate_limit_per_sec: 1.0
+    # 29 state partitions back-to-back tripped the portal's limiter (429).
+    rate_limit_per_sec: 0.5
+    max_retries: 5
     options:
       page_size: 1000
       # Circuit breaker only -- paging stops when the API's `total` is reached.

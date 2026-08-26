@@ -113,13 +113,27 @@ class MandiPrices(BaseSource):
 
         self.log.info("collecting %d %s partitions", len(values), field)
         records: list[dict[str, Any]] = []
+        failed: list[str] = []
         for value in values:
-            slice_rows, slice_total = self._scan(
-                ctx, api_key, page_size, max_pages, filters={f"filters[{field}]": value}
-            )
+            try:
+                slice_rows, slice_total = self._scan(
+                    ctx, api_key, page_size, max_pages, filters={f"filters[{field}]": value}
+                )
+            except Exception as exc:
+                # One partition dying must not throw away the other 28. A day
+                # missing one state beats a day missing everything -- the run is
+                # marked `partial` so the gap is visible either way.
+                failed.append(value)
+                self.warn(f"{field}={value} failed after retries: {type(exc).__name__}")
+                continue
             if slice_total is not None and len(slice_rows) < slice_total:
                 self.warn(f"{field}={value}: got {len(slice_rows)} of {slice_total} rows")
             records.extend(slice_rows)
+
+        if failed:
+            self.warn(f"{len(failed)} of {len(values)} partitions failed: {sorted(failed)}")
+        if not records:
+            raise RuntimeError(f"every {field} partition failed; collected nothing")
 
         # The portal's filters match loosely (`state=Uttar Pradesh` also returns
         # Andhra/Madhya/Himachal Pradesh), so slices overlap and their totals
