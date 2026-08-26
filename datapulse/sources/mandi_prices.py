@@ -24,6 +24,7 @@ from typing import Any
 
 import pandas as pd
 
+from datapulse.core.quality import Ordered, PeerRatio
 from datapulse.core.schema import Column, Schema
 from datapulse.core.source import BaseSource, RunContext, register
 
@@ -75,8 +76,19 @@ class MandiPrices(BaseSource):
             Column("max_price", "float64"),
             Column("modal_price", "float64"),
             Column("source", "string", nullable=False),
+            Column("quality_flag", "string"),
         ],
         primary_key=["collected_date", *PRIMARY_KEY],
+    )
+
+    quality_rules = (
+        # A modal price outside its own min/max is internally inconsistent.
+        Ordered(["min_price", "modal_price", "max_price"], code="price_order_invalid"),
+        # Catches unit errors: Patti APMC (Punjab) reports rupees per kilogram
+        # while the rest of the country reports per quintal, so its potato
+        # arrives as 0.20 against a national median near 2000. Real regional
+        # spread stays far inside 20x.
+        PeerRatio("modal_price", group_by=["commodity"], factor=20, code="unit_or_outlier"),
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
@@ -113,13 +125,27 @@ class MandiPrices(BaseSource):
 
         self.log.info("collecting %d %s partitions", len(values), field)
         records: list[dict[str, Any]] = []
+        failed: list[str] = []
         for value in values:
-            slice_rows, slice_total = self._scan(
-                ctx, api_key, page_size, max_pages, filters={f"filters[{field}]": value}
-            )
+            try:
+                slice_rows, slice_total = self._scan(
+                    ctx, api_key, page_size, max_pages, filters={f"filters[{field}]": value}
+                )
+            except Exception as exc:
+                # One partition dying must not throw away the other 28. A day
+                # missing one state beats a day missing everything -- the run is
+                # marked `partial` so the gap is visible either way.
+                failed.append(value)
+                self.warn(f"{field}={value} failed after retries: {type(exc).__name__}")
+                continue
             if slice_total is not None and len(slice_rows) < slice_total:
                 self.warn(f"{field}={value}: got {len(slice_rows)} of {slice_total} rows")
             records.extend(slice_rows)
+
+        if failed:
+            self.warn(f"{len(failed)} of {len(values)} partitions failed: {sorted(failed)}")
+        if not records:
+            raise RuntimeError(f"every {field} partition failed; collected nothing")
 
         # The portal's filters match loosely (`state=Uttar Pradesh` also returns
         # Andhra/Madhya/Himachal Pradesh), so slices overlap and their totals

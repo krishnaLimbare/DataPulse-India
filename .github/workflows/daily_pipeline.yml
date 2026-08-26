@@ -25,7 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      # Scheduled runs always fire from the default branch (develop), but the
+      # dashboard publishes from main. Collecting onto develop meant the data
+      # never reached the site until a human merged. Data is an artifact, not
+      # code, so the bot writes it straight to main; code still travels
+      # feature -> develop -> main by pull request.
       - uses: actions/checkout@v7
+        with:
+          ref: main
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -38,21 +45,16 @@ jobs:
         run: |
           datapulse run \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
-            ${{ inputs.dry_run && '--dry-run' || '' }} \
-            --no-fail-fast
-
-      - name: Refresh dashboard summary
-        if: ${{ !inputs.dry_run }}
-        run: datapulse summarize
+            ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - name: Commit datasets
-        if: ${{ !inputs.dry_run }}
+        if: ${{ always() && !inputs.dry_run }}
         run: |
           git config user.name  "datapulse-bot"
           git config user.email "actions@github.com"
-          git add datasets dashboard/data
+          git add datasets
           git diff --staged --quiet || git commit -m "data: daily collection $(date -u +%Y-%m-%d)"
-          git push
+          git push origin HEAD:main
 
       - name: Upload run report
         if: always()

@@ -223,3 +223,67 @@ def test_pinned_values_recover_what_discovery_cannot_see():
     pinned_ctx = _partitioned_ctx(_PartitionedHttp(rows), values=["Gujarat", "Kerala", "Assam"])
     pinned = MandiPrices(pinned_ctx.config).fetch(pinned_ctx)
     assert {r["state"] for r in pinned} == {"Gujarat", "Kerala", "Assam"}
+
+
+class _FlakyPartitionedHttp(_PartitionedHttp):
+    """Fails one partition outright, however many times it is retried."""
+
+    def __init__(self, rows, broken):
+        super().__init__(rows)
+        self.broken = broken
+
+    def get(self, url, params=None, **kw):
+        if params.get("filters[state]") == self.broken:
+            raise RuntimeError("429 after retries")
+        return super().get(url, params=params, **kw)
+
+
+def test_one_failed_partition_does_not_lose_the_whole_day():
+    rows = _multi_state_rows()
+    ctx = _partitioned_ctx(
+        _FlakyPartitionedHttp(rows, broken="Kerala"), values=["Gujarat", "Kerala", "Assam"]
+    )
+    source = MandiPrices(ctx.config)
+    fetched = source.fetch(ctx)
+
+    assert {r["state"] for r in fetched} == {"Gujarat", "Assam"}  # Kerala lost, rest kept
+    assert any("Kerala failed after retries" in w for w in source.warnings)
+    assert any("1 of 3 partitions failed" in w for w in source.warnings)
+
+
+def test_total_collection_failure_still_raises():
+    """Losing every partition is a failed run, not a quietly empty one."""
+    import pytest
+
+    rows = _multi_state_rows()
+
+    class _AllBroken(_PartitionedHttp):
+        def get(self, url, params=None, **kw):
+            if params.get("filters[state]"):
+                raise RuntimeError("429")
+            return super().get(url, params=params, **kw)
+
+    ctx = _partitioned_ctx(_AllBroken(rows), values=["Gujarat", "Kerala"])
+    with pytest.raises(RuntimeError, match="collected nothing"):
+        MandiPrices(ctx.config).fetch(ctx)
+
+
+def test_quality_flag_is_attached_without_dropping_rows():
+    """End-to-end: a unit error survives into the archive, clearly marked."""
+    peers = [
+        {**LOWER[0], "market": f"m{i}", "min_price": "1800", "modal_price": "2000",
+         "max_price": "2200"}
+        for i in range(6)
+    ]
+    # Same market, same crop, priced per kilogram instead of per quintal.
+    broken = {**LOWER[0], "market": "patti", "min_price": "0.20", "modal_price": "0.20",
+              "max_price": "0.20"}
+    source = MandiPrices(CFG)
+    source.fetch = lambda ctx: peers + [broken]
+    out = source.collect(CTX)
+
+    assert len(out) == 7, "flagged rows must be kept, not deleted"
+    flagged = out[out.quality_flag != ""]
+    assert len(flagged) == 1
+    assert flagged.iloc[0]["market"] == "patti"
+    assert flagged.iloc[0]["modal_price"] == 0.20, "the raw value is preserved"

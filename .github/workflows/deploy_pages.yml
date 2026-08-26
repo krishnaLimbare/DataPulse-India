@@ -24,6 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -e .
+
+      # Derived from the committed parquet, so it never lives in git and can
+      # never conflict between branches.
+      - name: Build dashboard summary
+        run: datapulse summarize
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 

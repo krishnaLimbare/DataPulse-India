@@ -33,6 +33,22 @@ class CityRents(BaseSource):
         return pd.DataFrame(raw)
 ```
 
+Declare quality rules next to the schema when the upstream data can be wrong
+rather than merely missing:
+
+```python
+from datapulse.core.quality import Ordered, PeerRatio
+
+    quality_rules = (
+        Ordered(["min_price", "modal_price", "max_price"]),
+        # 20x off its own commodity's median means a unit error, not a bargain.
+        PeerRatio("modal_price", group_by=["commodity"], factor=20),
+    )
+```
+
+Add a nullable `quality_flag` column to the schema to switch it on. Flagged rows
+are kept with their original values -- never drop a row you cannot recover.
+
 Rules of thumb:
 
 - `collected_date` and `source` are auto-stamped if declared — don't set them in `parse`.
