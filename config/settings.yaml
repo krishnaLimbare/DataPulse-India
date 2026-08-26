@@ -28,8 +28,31 @@ sources:
       partition:
         field: state
         discovery_pages: 10  # sample the whole reachable window before slicing
+      # Shown on the dashboard. Attribution is a condition of the GODL-India
+      # licence, not a courtesy, and citing the exact resource is what makes
+      # the numbers checkable by anyone who doubts them.
+      provenance:
+        source_name: "Variety-wise Daily Market Prices, data.gov.in"
+        source_url: "https://www.data.gov.in/resource/variety-wise-daily-market-prices-data-commodity"
+        publisher: "Ministry of Agriculture & Farmers Welfare, Government of India"
+        license: "Government Open Data License - India (GODL)"
+        license_url: "https://www.data.gov.in/government-open-data-license-india"
+        units: "Wholesale prices in INR per quintal (100 kg) - not retail prices."
+        cadence: "Collected daily at about 01:00 IST."
+        notes:
+          - "Some markets report in other units; those rows are flagged and left out of the averages."
+          - "A day can be incomplete if the portal rate-limits collection - such runs are marked partial."
+          - "Prices are what markets reported, republished unchanged. Nothing is corrected or estimated."
+
       summary:
         label: "Food & Mandi Prices"
+        # The browsable table: one row per crop, and per crop-and-state so the
+        # page can filter by state without another request.
+        table:
+          dimension: commodity
+          facet: state
+          metric: modal_price
+          count: market
         chart_title: "Average modal price by commodity (INR / quintal)"
         dimension: commodity
         metric: modal_price
