@@ -143,7 +143,7 @@ function renderDownload(dataset) {
   }
   link.style.display = "";
   link.href = `data/${dataset.download}`;
-  link.textContent = `Download these ${fmt(dataset.download_rows)} prices (CSV)`;
+  link.textContent = `Download this day’s prices (CSV, ${fmt(dataset.download_rows)} rows)`;
 }
 
 function renderProvenance(dataset) {
@@ -185,8 +185,17 @@ function setKpis(d) {
   const distinct = (d.stats && d.stats.distinct) || {};
   const top = d.stats && d.stats.top_by_count;
 
-  setText("kpiTotalRows", fmt(d.rows));
-  setText("kpiTotalRowsSub", d.days > 1 ? `collected over ${d.days} days` : "collected today");
+  // The headline matches the chart, the table and the download -- all of which
+  // describe the latest collection day. The archive total sits beneath it, so
+  // the growing asset is still visible without the two being confused.
+  const latest = d.rows_latest || d.rows;
+  setText("kpiTotalRows", fmt(latest));
+  setText(
+    "kpiTotalRowsSub",
+    d.days > 1
+      ? `on ${niceDate(d.last_collected)} · ${fmt(d.rows)} in the archive since ${niceDate(d.first_collected)}`
+      : `on ${niceDate(d.last_collected)}`
+  );
 
   setText("kpiMarkets", fmt(distinct.market));
   setText("kpiMarketsSub", distinct.state ? `across ${fmt(distinct.state)} states` : "");
@@ -328,14 +337,22 @@ function renderTable(dataset) {
   setHtml("tableBody", rows.length
     ? rows
         .map((r) => {
-          const thin = (r.places ?? 0) < THIN_MARKETS ? ' class="thin"' : "";
-          return `<tr${thin}>` + COLUMNS.map((c) => {
+          const few = (r.places ?? 0) < THIN_MARKETS;
+          return "<tr>" + COLUMNS.map((c) => {
+            // Flag the market count itself rather than fading the whole row:
+            // the price figures are real, only the sample behind them is thin.
+            const cls = [c.num ? "num" : "", few && c.key === "places" ? "few-samples" : ""]
+              .filter(Boolean).join(" ");
+            const attr = cls ? ` class="${cls}"` : "";
+            const title = few && c.key === "places"
+              ? ' title="Few markets reporting — the cheapest and priciest are single quotes, not a regional range."'
+              : "";
             const v = c.key === "dimension" ? r[dim] : r[c.key];
-            if (v === null || v === undefined) return `<td${c.num ? ' class="num"' : ""}>—</td>`;
-            let text = c.money ? `₹${Math.round(v).toLocaleString("en-IN")}`
-                     : c.ratio ? `${v}×`
-                     : typeof v === "number" ? fmt(v) : v;
-            return `<td${c.num ? ' class="num"' : ""}>${esc(text)}</td>`;
+            if (v === null || v === undefined) return `<td${attr}>—</td>`;
+            const text = c.money ? `₹${Math.round(v).toLocaleString("en-IN")}`
+                       : c.ratio ? `${v}×`
+                       : typeof v === "number" ? fmt(v) : v;
+            return `<td${attr}${title}>${esc(text)}</td>`;
           }).join("") + "</tr>";
         })
         .join("")
@@ -344,8 +361,9 @@ function renderTable(dataset) {
   const where = state.region === "all" ? "across India" : `in ${state.region}`;
   setText("tableNote",
     `${rows.length} crop${rows.length === 1 ? "" : "s"} ${where}. ` +
-    `Prices are ₹ per quintal. Rows from fewer than ${THIN_MARKETS} markets are dimmed — ` +
-    `with so few reports the cheapest and priciest are single quotes, not a regional range.`);
+    `Prices are ₹ per quintal. A market count marked * comes from fewer than ` +
+    `${THIN_MARKETS} markets — with so few reports the cheapest and priciest are single ` +
+    `quotes rather than a regional range.`);
 }
 
 const regionSelect = $("stateFilter");

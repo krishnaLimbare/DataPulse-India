@@ -180,3 +180,40 @@ def test_table_is_absent_when_not_configured(tmp_path):
     }))
     table = build_summary(settings)["datasets"][0]["table"]
     assert table["overall"] == [] and table["facets"] == []
+
+
+def test_headline_count_is_the_latest_day_not_the_whole_archive(tmp_path):
+    """Everything on the page describes the latest day, so the headline must too."""
+    settings = _table_settings(tmp_path)
+    storage = ParquetLocalStorage(settings.storage)
+    base = {"state": ["MH"], "market": ["Pune"], "commodity": ["Onion"], "modal_price": [100.0]}
+
+    storage.write(
+        "food_mandi",
+        "mandi_prices",
+        pd.DataFrame({**base, "collected_date": [pd.Timestamp("2026-08-25")]}),
+        date(2026, 8, 25),
+    )
+    storage.write(
+        "food_mandi",
+        "mandi_prices",
+        pd.DataFrame(
+            {
+                "state": ["MH", "PB"],
+                "market": ["Pune", "Patti"],
+                "commodity": ["Onion", "Onion"],
+                "modal_price": [110.0, 120.0],
+                "collected_date": [pd.Timestamp("2026-08-26")] * 2,
+            }
+        ),
+        date(2026, 8, 26),
+    )
+
+    export = tmp_path / "out"
+    entry = build_summary(settings, export_dir=export)["datasets"][0]
+
+    assert entry["rows"] == 3, "archive total spans both days"
+    assert entry["rows_latest"] == 2, "headline is the latest day"
+    assert entry["download_rows"] == entry["rows_latest"], "download must match the headline"
+    assert entry["first_collected"] == "2026-08-25"
+    assert entry["last_collected"] == "2026-08-26"
