@@ -24,7 +24,7 @@ from typing import Any
 
 import pandas as pd
 
-from datapulse.core.quality import Ordered, PeerRatio
+from datapulse.core.quality import Between, Ordered, PeerRatio
 from datapulse.core.schema import Column, Schema
 from datapulse.core.source import BaseSource, RunContext, register
 
@@ -74,16 +74,17 @@ class MandiPrices(BaseSource):
                    description="Stable code for one market + crop + variety + grade. Use it to "
                                "follow the same thing across days.",
                    empty_means="one of the six identifying fields was missing"),
-            Column("state", "string",
+            Column("state", "string", normalize=True,
                    description="State or union territory, spelled as the portal spells it."),
-            Column("district", "string", description="District within the state."),
-            Column("market", "string",
+            Column("district", "string", normalize=True,
+                   description="District within the state."),
+            Column("market", "string", normalize=True,
                    description="The mandi (wholesale market) reporting the price."),
-            Column("commodity", "string", nullable=False,
+            Column("commodity", "string", nullable=False, normalize=True,
                    description="The crop or product traded."),
-            Column("variety", "string",
+            Column("variety", "string", normalize=True,
                    description="Variety of the commodity, e.g. Local, Nasik, Jyoti."),
-            Column("grade", "string",
+            Column("grade", "string", normalize=True,
                    description="Quality grade. The same crop at one market trades at several "
                                "grades with genuinely different prices."),
             Column("arrival_date", "string",
@@ -123,6 +124,15 @@ class MandiPrices(BaseSource):
         # arrives as 0.20 against a national median near 2000. Real regional
         # spread stays far inside 20x.
         PeerRatio("modal_price", group_by=["commodity"], factor=20, code="unit_or_outlier"),
+        # A tripwire, not a filter. Nothing in the archive trips it today; the
+        # bounds are deliberately far outside any real Indian mandi price so
+        # that only a portal malfunction -- a zero, a negative, a stray decimal
+        # shift -- can set it off. A rule that fires on nothing is still doing
+        # its job, and costs one comparison per row.
+        *[
+            Between(c, low=0.01, high=10_000_000, code="price_implausible")
+            for c in ("min_price", "modal_price", "max_price")
+        ],
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:

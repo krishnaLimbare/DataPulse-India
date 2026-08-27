@@ -29,6 +29,12 @@ class Column:
     description: str = ""
     unit: str = ""
     empty_means: str = ""
+    # Collapse whitespace runs and strip the ends before anything reads the
+    # value. Upstream ships "Sweet Corn " and a commodity ending in a newline;
+    # left alone those become separate series the day the portal tidies them
+    # up, and a newline inside a field breaks the CSV export. Case is
+    # deliberately left alone -- see Schema.normalize.
+    normalize: bool = False
 
 
 @dataclass(frozen=True)
@@ -39,6 +45,28 @@ class Schema:
     @property
     def names(self) -> list[str]:
         return [c.name for c in self.columns]
+
+    def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Tidy whitespace in the columns that asked for it.
+
+        Run *before* identity is derived, so a stray space cannot fork a series.
+
+        Whitespace only. Changing case here would be a mistake: these columns
+        are part of the primary key, so lowercasing them would silently merge
+        rows the portal reports separately, and we could never tell afterwards
+        which spelling was real. Whitespace carries no meaning; case might.
+        """
+        wanted = [c.name for c in self.columns if c.normalize and c.name in df.columns]
+        if not wanted or df.empty:
+            return df
+        df = df.copy()
+        for name in wanted:
+            cleaned = (
+                df[name].astype("string").str.replace(r"\s+", " ", regex=True).str.strip()
+            )
+            # An empty string after tidying meant nothing to begin with.
+            df[name] = cleaned.replace("", pd.NA)
+        return df
 
     def validate(self, df: pd.DataFrame) -> pd.DataFrame:
         """Coerce to the declared types and enforce constraints. Returns a new frame."""

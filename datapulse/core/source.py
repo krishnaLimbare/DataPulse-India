@@ -102,9 +102,11 @@ class BaseSource(ABC):
         """Pure transform from raw payload to a dataframe matching `schema`."""
 
     def collect(self, ctx: RunContext) -> pd.DataFrame:
-        """Template method: fetch -> parse -> stamp -> validate."""
+        """Template method: fetch -> parse -> normalize -> stamp -> validate."""
         raw = self.fetch(ctx)
         df = self.parse(raw, ctx)
+        # Before identity: a trailing space must never fork a series.
+        df = self.schema.normalize(df)
         self._stamp(df, "collected_date", pd.to_datetime(ctx.run_date))
         self._stamp(df, "source", self.name)
         df = self._add_series_id(df)
