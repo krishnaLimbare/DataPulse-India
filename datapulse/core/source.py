@@ -64,6 +64,15 @@ class BaseSource(ABC):
     schema: ClassVar[Schema]
     # Checks applied after validation. Rows are flagged, never dropped.
     quality_rules: ClassVar[tuple[Rule, ...]] = ()
+
+    # The column holding the date the data *describes*, as opposed to when we
+    # happened to fetch it. Naming files from the clock means a delayed run --
+    # GitHub schedules drift by hours -- files the wrong day and leaves a gap.
+    # Set this and the archive becomes independent of when the job wakes up.
+    partition_column: ClassVar[str] = ""
+    # Natural key within one partition, used to merge a re-run into an existing
+    # day instead of overwriting it. Must exclude collected_date.
+    identity_columns: ClassVar[tuple[str, ...]] = ()
     # Set False for sources whose data is legally/ToS restricted from redistribution.
     publishable: ClassVar[bool] = True
 

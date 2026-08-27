@@ -72,14 +72,20 @@ class MandiPrices(BaseSource):
             Column("variety", "string"),
             Column("grade", "string"),
             Column("arrival_date", "string"),
+            # The trading day the row describes, parsed from arrival_date. This
+            # is what the file is named after -- not the clock, which drifts.
+            Column("market_date", "datetime64[ns]"),
             Column("min_price", "float64"),
             Column("max_price", "float64"),
             Column("modal_price", "float64"),
             Column("source", "string", nullable=False),
             Column("quality_flag", "string"),
         ],
-        primary_key=["collected_date", *PRIMARY_KEY],
+        primary_key=["market_date", *PRIMARY_KEY],
     )
+
+    partition_column = "market_date"
+    identity_columns = tuple(PRIMARY_KEY)
 
     quality_rules = (
         # A modal price outside its own min/max is internally inconsistent.
@@ -255,6 +261,16 @@ class MandiPrices(BaseSource):
                 df[col] = pd.NA
         for col in ("min_price", "max_price", "modal_price"):
             df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # The portal reports DD/MM/YYYY. dayfirst is explicit because pandas
+        # would otherwise read 03/04/2026 as 3 April in some locales and
+        # 4 March in others.
+        df["market_date"] = pd.to_datetime(
+            df["arrival_date"], format="%d/%m/%Y", errors="coerce"
+        )
+        unparsed = int(df["market_date"].isna().sum())
+        if unparsed:
+            self.warn(f"{unparsed} rows have an unreadable arrival_date")
 
         # Offset paging over a dataset the portal is still writing to can hand
         # back the same row on two pages. Drop those before the schema's

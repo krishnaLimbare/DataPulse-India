@@ -22,6 +22,7 @@ log = get_logger(__name__)
 class Storage(Protocol):
     def write(self, domain: str, name: str, df: pd.DataFrame, run_date: date) -> str: ...
     def read_all(self, domain: str, name: str) -> pd.DataFrame: ...
+    def read_day(self, domain: str, name: str, day: date) -> pd.DataFrame: ...
 
 
 class ParquetLocalStorage:
@@ -50,6 +51,12 @@ class ParquetLocalStorage:
         df.to_parquet(path, engine="pyarrow", compression=self.cfg.compression, index=False)
         log.info("wrote %d rows -> %s", len(df), path)
         return str(path)
+
+    def read_day(self, domain: str, name: str, day: date) -> pd.DataFrame:
+        """One day's file, or an empty frame. Lets a re-run merge into a day
+        instead of replacing it."""
+        path = self._path(domain, name, day)
+        return pd.read_parquet(path) if path.exists() else pd.DataFrame()
 
     def read_all(self, domain: str, name: str) -> pd.DataFrame:
         root = self.cfg.root / domain / name

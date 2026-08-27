@@ -194,13 +194,22 @@ def build_summary(settings: Settings, export_dir: Path | None = None) -> dict[st
         df = storage.read_all(cls.domain, name)
         if not df.empty:
             entry["rows"] = len(df)
-            if "collected_date" in df.columns:
-                dates = pd.to_datetime(df["collected_date"], errors="coerce").dropna()
-                entry["days"] = int(dates.dt.date.nunique())
-                if not dates.empty:
-                    entry["last_collected"] = str(dates.max().date())
-                    entry["first_collected"] = str(dates.min().date())
-                    latest = df[dates == dates.max()]
+            # Prefer the day the data describes over the day we fetched it. A
+            # file merged across two runs carries two collected_dates but one
+            # market_date, and the page is about market days.
+            date_column = "market_date" if "market_date" in df.columns else "collected_date"
+            if date_column in df.columns:
+                # Keep the full index: dropna() would return a shorter Series,
+                # and masking df with it raises on misaligned indexes. Files
+                # written before a date column existed carry NaT here.
+                dates = pd.to_datetime(df[date_column], errors="coerce")
+                known = dates.dropna()
+                entry["days"] = int(known.dt.date.nunique())
+                if not known.empty:
+                    newest = known.max()
+                    entry["last_collected"] = str(newest.date())
+                    entry["first_collected"] = str(known.min().date())
+                    latest = df[(dates == newest).fillna(False)]
                 else:
                     latest = df
             else:
