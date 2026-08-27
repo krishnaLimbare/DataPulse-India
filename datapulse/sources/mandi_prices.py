@@ -24,7 +24,7 @@ from typing import Any
 
 import pandas as pd
 
-from datapulse.core.quality import Ordered, PeerRatio
+from datapulse.core.quality import Between, Ordered, PeerRatio
 from datapulse.core.schema import Column, Schema
 from datapulse.core.source import BaseSource, RunContext, register
 
@@ -64,22 +64,57 @@ class MandiPrices(BaseSource):
     domain = "food_mandi"
     schema = Schema(
         columns=[
-            Column("collected_date", "datetime64[ns]", nullable=False),
-            Column("state", "string"),
-            Column("district", "string"),
-            Column("market", "string"),
-            Column("commodity", "string", nullable=False),
-            Column("variety", "string"),
-            Column("grade", "string"),
-            Column("arrival_date", "string"),
-            Column("min_price", "float64"),
-            Column("max_price", "float64"),
-            Column("modal_price", "float64"),
-            Column("source", "string", nullable=False),
-            Column("quality_flag", "string"),
+            Column("collected_date", "datetime64[ns]", nullable=False,
+                   description="When our robot fetched the row. Provenance, not a market date.",
+                   empty_means="never empty"),
+            Column("market_date", "datetime64[ns]",
+                   description="The trading day these prices are for. Files are named after this.",
+                   empty_means="the portal gave an unreadable arrival_date"),
+            Column("series_id", "string",
+                   description="Stable code for one market + crop + variety + grade. Use it to "
+                               "follow the same thing across days.",
+                   empty_means="one of the six identifying fields was missing"),
+            Column("state", "string", normalize=True,
+                   description="State or union territory, spelled as the portal spells it."),
+            Column("district", "string", normalize=True,
+                   description="District within the state."),
+            Column("market", "string", normalize=True,
+                   description="The mandi (wholesale market) reporting the price."),
+            Column("commodity", "string", nullable=False, normalize=True,
+                   description="The crop or product traded."),
+            Column("variety", "string", normalize=True,
+                   description="Variety of the commodity, e.g. Local, Nasik, Jyoti."),
+            Column("grade", "string", normalize=True,
+                   description="Quality grade. The same crop at one market trades at several "
+                               "grades with genuinely different prices."),
+            Column("arrival_date", "string",
+                   description="Trading day exactly as the portal sent it (DD/MM/YYYY). "
+                               "market_date is the parsed version."),
+            Column("min_price", "float64", unit="INR per quintal (100 kg)",
+                   description="Lowest price recorded at that market that day.",
+                   empty_means="not reported"),
+            Column("max_price", "float64", unit="INR per quintal (100 kg)",
+                   description="Highest price recorded at that market that day.",
+                   empty_means="not reported"),
+            Column("modal_price", "float64", unit="INR per quintal (100 kg)",
+                   description="The most common price that day. Usually the one to use.",
+                   empty_means="not reported"),
+            Column("source", "string", nullable=False,
+                   description="Which pipeline collected the row."),
+            Column("quality_flag", "string",
+                   description="Empty when the row passed every check. Otherwise a "
+                               "comma-separated list of what looked wrong. Flagged rows are "
+                               "kept, never deleted.",
+                   empty_means="the row passed all checks"),
         ],
-        primary_key=["collected_date", *PRIMARY_KEY],
+        primary_key=["market_date", *PRIMARY_KEY],
     )
+
+    partition_column = "market_date"
+    identity_columns = tuple(PRIMARY_KEY)
+    # A series is a market and a product followed over time -- the identity
+    # without the date.
+    series_columns = ("state", "district", "market", "commodity", "variety", "grade")
 
     quality_rules = (
         # A modal price outside its own min/max is internally inconsistent.
@@ -89,6 +124,15 @@ class MandiPrices(BaseSource):
         # arrives as 0.20 against a national median near 2000. Real regional
         # spread stays far inside 20x.
         PeerRatio("modal_price", group_by=["commodity"], factor=20, code="unit_or_outlier"),
+        # A tripwire, not a filter. Nothing in the archive trips it today; the
+        # bounds are deliberately far outside any real Indian mandi price so
+        # that only a portal malfunction -- a zero, a negative, a stray decimal
+        # shift -- can set it off. A rule that fires on nothing is still doing
+        # its job, and costs one comparison per row.
+        *[
+            Between(c, low=0.01, high=10_000_000, code="price_implausible")
+            for c in ("min_price", "modal_price", "max_price")
+        ],
     )
 
     def fetch(self, ctx: RunContext) -> list[dict[str, Any]]:
@@ -255,6 +299,16 @@ class MandiPrices(BaseSource):
                 df[col] = pd.NA
         for col in ("min_price", "max_price", "modal_price"):
             df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # The portal reports DD/MM/YYYY. dayfirst is explicit because pandas
+        # would otherwise read 03/04/2026 as 3 April in some locales and
+        # 4 March in others.
+        df["market_date"] = pd.to_datetime(
+            df["arrival_date"], format="%d/%m/%Y", errors="coerce"
+        )
+        unparsed = int(df["market_date"].isna().sum())
+        if unparsed:
+            self.warn(f"{unparsed} rows have an unreadable arrival_date")
 
         # Offset paging over a dataset the portal is still writing to can hand
         # back the same row on two pages. Drop those before the schema's

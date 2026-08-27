@@ -35,3 +35,4 @@ datasets/_scratch/
 
 # Generated at deploy time from the committed parquet.
 dashboard/data/*.csv
+dashboard/data/schema.json

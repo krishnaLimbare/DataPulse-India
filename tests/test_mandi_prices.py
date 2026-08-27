@@ -287,3 +287,41 @@ def test_quality_flag_is_attached_without_dropping_rows():
     assert len(flagged) == 1
     assert flagged.iloc[0]["market"] == "patti"
     assert flagged.iloc[0]["modal_price"] == 0.20, "the raw value is preserved"
+
+
+def test_stray_whitespace_cannot_fork_a_series():
+    """The portal ships "Sweet Corn " and a commodity ending in a newline. Left
+    alone those are different strings, so the same market+crop would carry two
+    different series_ids and its history would split in half."""
+    tidy = {**LOWER[0], "commodity": "Sweet Corn", "market": "Pune APMC"}
+    messy = {**LOWER[0], "commodity": "Sweet Corn\n", "market": "Pune  APMC",
+             "arrival_date": "26/08/2026"}
+    out = _collect([tidy, messy])
+
+    assert out["commodity"].tolist() == ["Sweet Corn", "Sweet Corn"]
+    assert out["market"].tolist() == ["Pune APMC", "Pune APMC"]
+    assert out["series_id"].nunique() == 1, "one market and crop is one series"
+
+
+def test_normalisation_leaves_case_alone():
+    """Case is part of the primary key. Folding it would merge rows the portal
+    reports separately, and nothing could tell them apart afterwards."""
+    out = _collect([{**LOWER[0], "commodity": "TOMATO"}])
+    assert out.loc[0, "commodity"] == "TOMATO"
+
+
+def test_implausible_prices_are_flagged_not_dropped():
+    source = MandiPrices(CFG)
+    source.fetch = lambda ctx: [{**LOWER[0], "min_price": "0", "modal_price": "0",
+                                 "max_price": "0"}]
+    out = source.collect(CTX)
+    assert len(out) == 1
+    assert "price_implausible" in out.loc[0, "quality_flag"]
+
+
+def test_real_prices_do_not_trip_the_bounds():
+    """Cardamom really does trade near 272,500 per quintal."""
+    source = MandiPrices(CFG)
+    source.fetch = lambda ctx: [{**LOWER[0], "commodity": "Cardamom", "min_price": "268000",
+                                 "modal_price": "272500", "max_price": "275000"}]
+    assert source.collect(CTX).loc[0, "quality_flag"] == ""
