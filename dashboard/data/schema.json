@@ -1,0 +1,159 @@
+{
+  "generated_at": "2026-08-27T06:14:36+00:00",
+  "usage_notes": [
+    "One row is a single observation, not a summary. Stacking the daily files gives you one long table, which is the shape most tools expect.",
+    "A missing day means the source did not report that day. It does not mean zero, and it does not mean the value was unchanged.",
+    "Do not fill those gaps by carrying values forward or averaging neighbours. That invents numbers nobody published, and once written they cannot be told apart from real ones.",
+    "If you need a continuous series, aggregate upwards instead. Grouping by state, or nationally, has far fewer gaps than a single market does.",
+    "Use series_id to follow one thing across days. It is derived from the identifying columns, so it is the same code in every run.",
+    "Rows that failed a quality check are kept, not deleted, with the reason in quality_flag. Filter to an empty quality_flag for clean rows only."
+  ],
+  "datasets": [
+    {
+      "source": "mandi_prices",
+      "domain": "food_mandi",
+      "grain": "one row per state + district + market + commodity + variety + grade + arrival_date per market_date",
+      "series_columns": [
+        "state",
+        "district",
+        "market",
+        "commodity",
+        "variety",
+        "grade"
+      ],
+      "partition_column": "market_date",
+      "primary_key": [
+        "market_date",
+        "state",
+        "district",
+        "market",
+        "commodity",
+        "variety",
+        "grade",
+        "arrival_date"
+      ],
+      "columns": [
+        {
+          "name": "collected_date",
+          "type": "datetime64[ns]",
+          "nullable": false,
+          "unit": null,
+          "description": "When our robot fetched the row. Provenance, not a market date.",
+          "empty_means": "never empty"
+        },
+        {
+          "name": "market_date",
+          "type": "datetime64[ns]",
+          "nullable": true,
+          "unit": null,
+          "description": "The trading day these prices are for. Files are named after this.",
+          "empty_means": "the portal gave an unreadable arrival_date"
+        },
+        {
+          "name": "series_id",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "Stable code for one market + crop + variety + grade. Use it to follow the same thing across days.",
+          "empty_means": "one of the six identifying fields was missing"
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "State or union territory, spelled as the portal spells it.",
+          "empty_means": null
+        },
+        {
+          "name": "district",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "District within the state.",
+          "empty_means": null
+        },
+        {
+          "name": "market",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "The mandi (wholesale market) reporting the price.",
+          "empty_means": null
+        },
+        {
+          "name": "commodity",
+          "type": "string",
+          "nullable": false,
+          "unit": null,
+          "description": "The crop or product traded.",
+          "empty_means": null
+        },
+        {
+          "name": "variety",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "Variety of the commodity, e.g. Local, Nasik, Jyoti.",
+          "empty_means": null
+        },
+        {
+          "name": "grade",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "Quality grade. The same crop at one market trades at several grades with genuinely different prices.",
+          "empty_means": null
+        },
+        {
+          "name": "arrival_date",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "Trading day exactly as the portal sent it (DD/MM/YYYY). market_date is the parsed version.",
+          "empty_means": null
+        },
+        {
+          "name": "min_price",
+          "type": "float64",
+          "nullable": true,
+          "unit": "INR per quintal (100 kg)",
+          "description": "Lowest price recorded at that market that day.",
+          "empty_means": "not reported"
+        },
+        {
+          "name": "max_price",
+          "type": "float64",
+          "nullable": true,
+          "unit": "INR per quintal (100 kg)",
+          "description": "Highest price recorded at that market that day.",
+          "empty_means": "not reported"
+        },
+        {
+          "name": "modal_price",
+          "type": "float64",
+          "nullable": true,
+          "unit": "INR per quintal (100 kg)",
+          "description": "The most common price that day. Usually the one to use.",
+          "empty_means": "not reported"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "nullable": false,
+          "unit": null,
+          "description": "Which pipeline collected the row.",
+          "empty_means": null
+        },
+        {
+          "name": "quality_flag",
+          "type": "string",
+          "nullable": true,
+          "unit": null,
+          "description": "Empty when the row passed every check. Otherwise a comma-separated list of what looked wrong. Flagged rows are kept, never deleted.",
+          "empty_means": "the row passed all checks"
+        }
+      ]
+    }
+  ]
+}

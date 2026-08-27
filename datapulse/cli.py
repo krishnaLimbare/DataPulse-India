@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from datapulse.core.config import REPO_ROOT, load_settings
+from datapulse.core.dictionary import write_dictionary
 from datapulse.core.logging import setup_logging
 from datapulse.core.runner import run as run_pipeline
 from datapulse.core.source import registry
@@ -76,7 +77,27 @@ def summarize(
     settings = load_settings(config)
     setup_logging(settings.log_level)
     written = write_summary(settings, out or REPO_ROOT / "dashboard" / "data" / "summary.json")
+    write_dictionary(
+        settings,
+        REPO_ROOT / "docs" / "DATA_DICTIONARY.md",
+        REPO_ROOT / "dashboard" / "data" / "schema.json",
+    )
     console.print(f"[green]wrote[/] {written}")
+
+
+@app.command()
+def dictionary(
+    config: Path = typer.Option(None, "--config", "-c"),
+) -> None:
+    """Regenerate the data dictionary from the source schemas."""
+    settings = load_settings(config)
+    setup_logging(settings.log_level)
+    write_dictionary(
+        settings,
+        REPO_ROOT / "docs" / "DATA_DICTIONARY.md",
+        REPO_ROOT / "dashboard" / "data" / "schema.json",
+    )
+    console.print("[green]wrote[/] docs/DATA_DICTIONARY.md and dashboard/data/schema.json")
 
 
 @app.command()

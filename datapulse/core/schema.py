@@ -23,6 +23,12 @@ class Column:
     dtype: str  # pandas dtype string: "string", "float64", "Int64", "datetime64[ns, UTC]", "bool"
     nullable: bool = True
     unique: bool = False
+    # Documentation lives next to the definition so the two cannot drift apart.
+    # A dictionary maintained in a separate file goes stale the first time a
+    # column changes and nobody remembers to update it.
+    description: str = ""
+    unit: str = ""
+    empty_means: str = ""
 
 
 @dataclass(frozen=True)

@@ -105,6 +105,15 @@ df = pd.concat(map(pd.read_parquet, glob.glob("datasets/**/*.parquet", recursive
 df.to_csv("all_prices.csv", index=False)   # only if you need CSV
 ```
 
+**Before you analyse it**, read [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) — it is
+generated from the schemas, so it cannot drift from the data. The short version:
+
+- One row is one price at one market on one day. `series_id` follows the same
+  market and crop across days.
+- A missing day means the market did not report. Not zero, not "unchanged".
+  Do not fill those gaps; roughly half of single-market series have holes
+  between any two days. Aggregate upwards if you need an unbroken line.
+
 Rows that failed a quality check are kept, not dropped, and carry a reason in
 `quality_flag`. Filter `df[df.quality_flag == ""]` for clean rows only — a
 handful of markets report in rupees per kilogram rather than per quintal, and

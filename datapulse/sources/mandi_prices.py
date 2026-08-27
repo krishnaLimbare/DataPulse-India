@@ -64,28 +64,56 @@ class MandiPrices(BaseSource):
     domain = "food_mandi"
     schema = Schema(
         columns=[
-            Column("collected_date", "datetime64[ns]", nullable=False),
-            Column("state", "string"),
-            Column("district", "string"),
-            Column("market", "string"),
-            Column("commodity", "string", nullable=False),
-            Column("variety", "string"),
-            Column("grade", "string"),
-            Column("arrival_date", "string"),
-            # The trading day the row describes, parsed from arrival_date. This
-            # is what the file is named after -- not the clock, which drifts.
-            Column("market_date", "datetime64[ns]"),
-            Column("min_price", "float64"),
-            Column("max_price", "float64"),
-            Column("modal_price", "float64"),
-            Column("source", "string", nullable=False),
-            Column("quality_flag", "string"),
+            Column("collected_date", "datetime64[ns]", nullable=False,
+                   description="When our robot fetched the row. Provenance, not a market date.",
+                   empty_means="never empty"),
+            Column("market_date", "datetime64[ns]",
+                   description="The trading day these prices are for. Files are named after this.",
+                   empty_means="the portal gave an unreadable arrival_date"),
+            Column("series_id", "string",
+                   description="Stable code for one market + crop + variety + grade. Use it to "
+                               "follow the same thing across days.",
+                   empty_means="one of the six identifying fields was missing"),
+            Column("state", "string",
+                   description="State or union territory, spelled as the portal spells it."),
+            Column("district", "string", description="District within the state."),
+            Column("market", "string",
+                   description="The mandi (wholesale market) reporting the price."),
+            Column("commodity", "string", nullable=False,
+                   description="The crop or product traded."),
+            Column("variety", "string",
+                   description="Variety of the commodity, e.g. Local, Nasik, Jyoti."),
+            Column("grade", "string",
+                   description="Quality grade. The same crop at one market trades at several "
+                               "grades with genuinely different prices."),
+            Column("arrival_date", "string",
+                   description="Trading day exactly as the portal sent it (DD/MM/YYYY). "
+                               "market_date is the parsed version."),
+            Column("min_price", "float64", unit="INR per quintal (100 kg)",
+                   description="Lowest price recorded at that market that day.",
+                   empty_means="not reported"),
+            Column("max_price", "float64", unit="INR per quintal (100 kg)",
+                   description="Highest price recorded at that market that day.",
+                   empty_means="not reported"),
+            Column("modal_price", "float64", unit="INR per quintal (100 kg)",
+                   description="The most common price that day. Usually the one to use.",
+                   empty_means="not reported"),
+            Column("source", "string", nullable=False,
+                   description="Which pipeline collected the row."),
+            Column("quality_flag", "string",
+                   description="Empty when the row passed every check. Otherwise a "
+                               "comma-separated list of what looked wrong. Flagged rows are "
+                               "kept, never deleted.",
+                   empty_means="the row passed all checks"),
         ],
         primary_key=["market_date", *PRIMARY_KEY],
     )
 
     partition_column = "market_date"
     identity_columns = tuple(PRIMARY_KEY)
+    # A series is a market and a product followed over time -- the identity
+    # without the date.
+    series_columns = ("state", "district", "market", "commodity", "variety", "grade")
 
     quality_rules = (
         # A modal price outside its own min/max is internally inconsistent.
