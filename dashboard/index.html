@@ -226,6 +226,25 @@ clean.to_csv("all_prices.csv", index=False)</code></pre>
         <p class="getdata-tip">Flagged rows are kept in the files rather than deleted, so
         you can inspect them. Skip the <code>clean</code> line to keep everything.</p>
       </figure>
+
+      <div class="usage-note">
+        <span class="getdata-when">Before you analyse it</span>
+        <ul>
+          <li>One row is a single price at one market on one day &mdash; not a summary.</li>
+          <li>A missing day means <strong>the market did not report</strong>. It does not mean
+          zero, and it does not mean the price stayed the same.</li>
+          <li>Do not fill those gaps by carrying prices forward or averaging neighbours. That
+          invents numbers nobody quoted, and afterwards nothing can tell them apart from real
+          ones.</li>
+          <li>Need an unbroken line? Aggregate upwards. Roughly half of single-market series
+          have gaps between any two days; grouped by state or nationally, far fewer do.</li>
+          <li>Use <code>series_id</code> to follow the same market and crop across days.</li>
+          <li>Full column-by-column reference:
+          <a href="https://github.com/krishnaLimbare/DataPulse-India/blob/main/docs/DATA_DICTIONARY.md"
+             target="_blank" rel="noopener">the data dictionary</a>
+          (also published as <a href="data/schema.json" target="_blank" rel="noopener">schema.json</a>).</li>
+        </ul>
+      </div>
     </section>
 
       <!-- Provenance & Data Contract Card -->

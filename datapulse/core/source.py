@@ -15,6 +15,7 @@ Nothing in core needs to change.
 
 from __future__ import annotations
 
+import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date
@@ -64,6 +65,19 @@ class BaseSource(ABC):
     schema: ClassVar[Schema]
     # Checks applied after validation. Rows are flagged, never dropped.
     quality_rules: ClassVar[tuple[Rule, ...]] = ()
+
+    # The column holding the date the data *describes*, as opposed to when we
+    # happened to fetch it. Naming files from the clock means a delayed run --
+    # GitHub schedules drift by hours -- files the wrong day and leaves a gap.
+    # Set this and the archive becomes independent of when the job wakes up.
+    partition_column: ClassVar[str] = ""
+    # Natural key within one partition, used to merge a re-run into an existing
+    # day instead of overwriting it. Must exclude collected_date.
+    identity_columns: ClassVar[tuple[str, ...]] = ()
+    # The columns that identify one thing followed across days -- the identity
+    # minus anything date-shaped. Filled into `series_id` so joining a series
+    # over time is one column instead of six.
+    series_columns: ClassVar[tuple[str, ...]] = ()
     # Set False for sources whose data is legally/ToS restricted from redistribution.
     publishable: ClassVar[bool] = True
 
@@ -88,13 +102,37 @@ class BaseSource(ABC):
         """Pure transform from raw payload to a dataframe matching `schema`."""
 
     def collect(self, ctx: RunContext) -> pd.DataFrame:
-        """Template method: fetch -> parse -> stamp -> validate."""
+        """Template method: fetch -> parse -> normalize -> stamp -> validate."""
         raw = self.fetch(ctx)
         df = self.parse(raw, ctx)
+        # Before identity: a trailing space must never fork a series.
+        df = self.schema.normalize(df)
         self._stamp(df, "collected_date", pd.to_datetime(ctx.run_date))
         self._stamp(df, "source", self.name)
+        df = self._add_series_id(df)
         df = self._flag_quality(df)
         return self.schema.validate(df)
+
+    def _add_series_id(self, df: pd.DataFrame) -> pd.DataFrame:
+        """A short stable code for one market+product followed over time.
+
+        Derived purely from columns already present, so it invents nothing --
+        the same combination always produces the same id, in any run, on any
+        machine.
+        """
+        if "series_id" not in self.schema.names or not self.series_columns or df.empty:
+            return df
+        missing = [c for c in self.series_columns if c not in df.columns]
+        if missing:
+            self.warn(f"cannot build series_id, missing {missing}")
+            return df
+
+        df = df.copy()
+        joined = df[list(self.series_columns)].astype("string").fillna("").agg("|".join, axis=1)
+        df["series_id"] = joined.map(
+            lambda key: hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]  # noqa: S324
+        )
+        return df
 
     def _flag_quality(self, df: pd.DataFrame) -> pd.DataFrame:
         """Attach `quality_flag` without removing anything.
