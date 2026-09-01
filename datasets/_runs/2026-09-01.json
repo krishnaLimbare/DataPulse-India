@@ -1,0 +1,21 @@
+{
+  "run_date": "2026-09-01",
+  "started_at": "2026-09-01T21:56:12.418197Z",
+  "finished_at": "2026-09-01T21:58:09.773972Z",
+  "dry_run": false,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "ok",
+      "rows": 16928,
+      "warnings": [],
+      "days_written": [
+        "2026-09-01"
+      ],
+      "path": "datasets/food_mandi/mandi_prices/year=2026/month=09/mandi_prices_2026-09-01.parquet",
+      "duration_seconds": 117.35,
+      "error": null
+    }
+  ]
+}
