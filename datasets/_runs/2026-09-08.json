@@ -1,0 +1,23 @@
+{
+  "run_date": "2026-09-08",
+  "started_at": "2026-09-08T21:58:42.182341Z",
+  "finished_at": "2026-09-08T22:00:21.224387Z",
+  "dry_run": false,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "partial",
+      "rows": 11187,
+      "warnings": [
+        "state=Tamil Nadu: got 1000 of 7066 rows"
+      ],
+      "days_written": [
+        "2026-09-08"
+      ],
+      "path": "datasets/food_mandi/mandi_prices/year=2026/month=09/mandi_prices_2026-09-08.parquet",
+      "duration_seconds": 99.04,
+      "error": null
+    }
+  ]
+}
