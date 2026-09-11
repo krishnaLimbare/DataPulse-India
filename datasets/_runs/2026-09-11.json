@@ -1,0 +1,19 @@
+{
+  "run_date": "2026-09-11",
+  "started_at": "2026-09-11T21:51:57.294737Z",
+  "finished_at": "2026-09-11T21:54:24.990528Z",
+  "dry_run": false,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "failed",
+      "rows": 0,
+      "warnings": [],
+      "days_written": [],
+      "path": null,
+      "duration_seconds": 147.69,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=***redacted***&format=json&limit=1000&offset=0'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502"
+    }
+  ]
+}
