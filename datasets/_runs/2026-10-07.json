@@ -1,0 +1,19 @@
+{
+  "run_date": "2026-10-07",
+  "started_at": "2026-10-07T23:42:34.417108Z",
+  "finished_at": "2026-10-07T23:43:23.923588Z",
+  "dry_run": false,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "failed",
+      "rows": 0,
+      "warnings": [],
+      "days_written": [],
+      "path": null,
+      "duration_seconds": 49.5,
+      "error": "ConnectError: [Errno 111] Connection refused"
+    }
+  ]
+}
