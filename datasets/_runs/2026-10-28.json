@@ -1,0 +1,19 @@
+{
+  "run_date": "2026-10-28",
+  "started_at": "2026-10-28T23:26:41.977885Z",
+  "finished_at": "2026-10-28T23:28:00.493894Z",
+  "dry_run": false,
+  "results": [
+    {
+      "name": "mandi_prices",
+      "domain": "food_mandi",
+      "status": "failed",
+      "rows": 0,
+      "warnings": [],
+      "days_written": [],
+      "path": null,
+      "duration_seconds": 78.51,
+      "error": "ConnectTimeout: timed out"
+    }
+  ]
+}
