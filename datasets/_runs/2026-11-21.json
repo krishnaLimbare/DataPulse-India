@@ -1,7 +1,7 @@
 {
   "run_date": "2026-11-21",
-  "started_at": "2026-11-21T00:54:49.872173Z",
-  "finished_at": "2026-11-21T00:56:09.210814Z",
+  "started_at": "2026-11-21T23:53:08.248009Z",
+  "finished_at": "2026-11-21T23:54:58.849705Z",
   "dry_run": false,
   "results": [
     {
@@ -12,7 +12,7 @@
       "warnings": [],
       "days_written": [],
       "path": null,
-      "duration_seconds": 79.34,
+      "duration_seconds": 110.6,
       "error": "ConnectTimeout: timed out"
     }
   ]
